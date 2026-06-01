@@ -58,6 +58,45 @@ router.get(
 
 
 // ======================================
+// UPDATE ALL QUESTIONS FOR A PAPER
+// ======================================
+router.put("/update-all/:paperId", async (req, res) => {
+  try {
+    const { paperId } = req.params;
+    const { questions } = req.body;
+
+    if (!questions || !Array.isArray(questions)) {
+      return res.status(400).json({ success: false, message: "Invalid questions data" });
+    }
+
+    for (const q of questions) {
+      if (q._id) {
+        // Update existing question
+        await Question.findByIdAndUpdate(q._id, {
+          qNo: String(q.qNo),
+          question: q.question,
+          maxMarks: Number(q.maxMarks) || 0
+        });
+      } else {
+        // Create newly added question
+        await Question.create({
+          qNo: String(q.qNo),
+          question: q.question,
+          maxMarks: Number(q.maxMarks) || 0,
+          questionPaper: paperId
+        });
+      }
+    }
+
+    res.json({ success: true, message: "Questions updated successfully" });
+  } catch (error) {
+    console.log("Update All Error:", error);
+    res.status(500).json({ success: false, message: "Failed to update questions" });
+  }
+});
+
+
+// ======================================
 // UPDATE QUESTION
 // ======================================
 

@@ -1,7 +1,7 @@
 // src/pages/UploadQuestionPaper.jsx
 
 import { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import {
@@ -46,6 +46,10 @@ function UploadQuestionPaper() {
   const [detectedQuestions,
     setDetectedQuestions] =
     useState([]);
+
+  const [paperId, setPaperId] = useState(null);
+
+  const navigate = useNavigate();
 
   // HANDLE FILE
 
@@ -144,6 +148,10 @@ function UploadQuestionPaper() {
         setDetectedQuestions(
           res.data.questions|| []
         );
+        
+        if (res.data.paper && res.data.paper._id) {
+          setPaperId(res.data.paper._id);
+        }
 
         alert(
           "Question Paper Uploaded Successfully"
@@ -154,7 +162,7 @@ function UploadQuestionPaper() {
         console.log(error);
 
         alert(
-          "Upload Failed"
+          "Upload Failed: " + (error.response?.data?.message || error.message)
         );
 
       } finally {
@@ -803,6 +811,28 @@ function UploadQuestionPaper() {
                   Questions extracted using OCR
                 </p>
 
+              </div>
+              
+              <div className="ml-auto">
+                <button
+                  onClick={() => navigate(`/question-editor/${paperId}`)}
+                  className="
+                  px-6
+                  py-3
+                  rounded-2xl
+                  bg-gradient-to-r
+                  from-cyan-500
+                  to-blue-600
+                  text-white
+                  font-bold
+                  hover:scale-105
+                  transition-transform
+                  shadow-lg
+                  shadow-cyan-500/20
+                  "
+                >
+                  Edit Questions & Marks
+                </button>
               </div>
             </div>
 

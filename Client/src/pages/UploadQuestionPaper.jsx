@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+import DetectedQuestionsEditor from "./DetectedQuestionsEditor";
 import {
   UploadCloud,
   BookOpen,
@@ -13,8 +14,6 @@ import {
   FileText,
   Code2,
   CalendarDays,
-  CheckCircle2,
-  ClipboardList,
 } from "lucide-react";
 
 function UploadQuestionPaper() {
@@ -751,180 +750,13 @@ function UploadQuestionPaper() {
 
         </div>
 
-        {/* DETECTED QUESTIONS */}
-
-        {detectedQuestions.length > 0 && (
-
-          <div
-            className="
-            mt-10
-            bg-white/5
-            border
-            border-white/10
-            rounded-[32px]
-            backdrop-blur-xl
-            p-8
-            shadow-2xl
-            "
-          >
-
-            <div
-              className="
-              flex
-              items-center
-              gap-4
-              mb-8
-              "
-            >
-
-              <div
-                className="
-                w-16
-                h-16
-                rounded-2xl
-                bg-green-500/20
-                flex
-                items-center
-                justify-center
-                "
-              >
-                <ClipboardList
-                  className="
-                  text-green-400
-                  "
-                  size={30}
-                />
-              </div>
-
-              <div>
-
-                <h2
-                  className="
-                  text-4xl
-                  font-black
-                  "
-                >
-                  Detected Questions
-                </h2>
-
-                <p className="text-gray-400 mt-2">
-                  Questions extracted using OCR
-                </p>
-
-              </div>
-              
-              <div className="ml-auto">
-                <button
-                  onClick={() => navigate(`/question-editor/${paperId}`)}
-                  className="
-                  px-6
-                  py-3
-                  rounded-2xl
-                  bg-gradient-to-r
-                  from-cyan-500
-                  to-blue-600
-                  text-white
-                  font-bold
-                  hover:scale-105
-                  transition-transform
-                  shadow-lg
-                  shadow-cyan-500/20
-                  "
-                >
-                  Edit Questions & Marks
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-
-              {detectedQuestions.map(
-                (q, index) => (
-
-                  <div
-                    key={index}
-
-                    className="
-                    bg-slate-900/60
-                    border
-                    border-white/10
-                    rounded-3xl
-                    p-6
-                    "
-                  >
-
-                    <div
-                      className="
-                      flex
-                      justify-between
-                      items-center
-                      mb-5
-                      "
-                    >
-
-                      <div
-                        className="
-                        flex
-                        items-center
-                        gap-3
-                        "
-                      >
-
-                        <CheckCircle2
-                          className="
-                          text-cyan-400
-                          "
-                        />
-
-                        <h3
-                          className="
-                          text-2xl
-                          font-bold
-                          "
-                        >
-                          Question {q.qNo}
-                        </h3>
-
-                      </div>
-
-                      <div
-                        className="
-                        bg-cyan-500/10
-                        border
-                        border-cyan-500/20
-                        px-4
-                        py-2
-                        rounded-xl
-                        "
-                      >
-
-                        <span
-                          className="
-                          text-cyan-400
-                          font-bold
-                          "
-                        >
-                          {q.maxMarks} Marks
-                        </span>
-
-                      </div>
-                    </div>
-
-                    <p
-                      className="
-                      text-gray-300
-                      leading-8
-                      text-lg
-                      "
-                    >
-                      {q.question}
-                    </p>
-
-                  </div>
-                )
-              )}
-            </div>
-          </div>
+        {/* DETECTED QUESTIONS EDITOR */}
+        {detectedQuestions.length > 0 && paperId && (
+          <DetectedQuestionsEditor 
+            paperId={paperId} 
+            initialQuestions={detectedQuestions} 
+            expectedTotalMarks={totalMarks} 
+          />
         )}
       </div>
     </div>

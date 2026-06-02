@@ -1,15 +1,14 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import AnswerSheet from "../models/AnswerSheet.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import prisma from "../prismaClient.js";
+import authMiddleware, { protectAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // ============================
 // UPLOADS FOLDER
 // ============================
-
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
@@ -17,7 +16,6 @@ if (!fs.existsSync("uploads")) {
 // ============================
 // MULTER
 // ============================
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -26,13 +24,11 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-
 const upload = multer({ storage });
 
 // ============================
 // UPLOAD ANSWER SHEET
 // ============================
-
 router.post(
   "/upload",
   authMiddleware,
@@ -55,22 +51,23 @@ router.post(
         });
       }
 
-      const answerSheet = await AnswerSheet.create({
-        studentName,
-        rollNumber,
-        questionPaper: questionPaperId,
-        fileUrl: req.file.path,
-        status: "available",
+      const answerSheet = await prisma.answerSheet.create({
+        data: {
+          studentName,
+          rollNumber,
+          questionPaperId,
+          fileUrl: req.file.path,
+          status: "available",
+        }
       });
 
       res.status(201).json({
         success: true,
         message: "Answer sheet uploaded successfully.",
-        answerSheet,
+        answerSheet: { ...answerSheet, _id: answerSheet.id },
       });
     } catch (error) {
       console.log("UPLOAD ANSWER SHEET ERROR:", error);
-
       res.status(500).json({
         success: false,
         message: "Upload failed.",
@@ -81,25 +78,90 @@ router.post(
 );
 
 // ============================
+// BULK UPLOAD ANSWER SHEETS (ADMIN ONLY)
+// ============================
+router.post(
+  "/upload-bulk",
+  protectAdmin,
+  upload.array("answerSheets", 50),
+  async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one answer sheet file is required.",
+        });
+      }
+
+      const { metadata } = req.body; // Expecting a JSON string of array
+      if (!metadata) {
+        return res.status(400).json({
+          success: false,
+          message: "Metadata is required.",
+        });
+      }
+
+      const parsedMetadata = JSON.parse(metadata);
+      
+      if (parsedMetadata.length !== req.files.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Mismatch between number of files and metadata entries.",
+        });
+      }
+
+      const answerSheetsToCreate = req.files.map((file, index) => {
+        const meta = parsedMetadata[index];
+        return {
+          studentName: meta.studentName,
+          rollNumber: meta.rollNumber,
+          questionPaperId: meta.questionPaperId,
+          fileUrl: file.path,
+          status: "available",
+        };
+      });
+
+      const result = await prisma.answerSheet.createMany({
+        data: answerSheetsToCreate
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `${result.count} answer sheets uploaded successfully.`,
+      });
+    } catch (error) {
+      console.log("BULK UPLOAD ERROR:", error);
+      res.status(500).json({
+        success: false,
+        message: "Bulk upload failed.",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// ============================
 // GET AVAILABLE SCRIPTS
 // ============================
-
 router.get("/available", authMiddleware, async (req, res) => {
   try {
     const { search } = req.query;
-
-    let query = { status: "available" };
+    let where = { status: "available" };
 
     if (search) {
-      query.$or = [
-        { studentName: { $regex: search, $options: "i" } },
-        { rollNumber: { $regex: search, $options: "i" } },
+      where.OR = [
+        { studentName: { contains: search, mode: "insensitive" } },
+        { rollNumber: { contains: search, mode: "insensitive" } },
       ];
     }
 
-    const scripts = await AnswerSheet.find(query)
-      .populate("questionPaper")
-      .sort({ createdAt: -1 });
+    const scriptsRaw = await prisma.answerSheet.findMany({
+      where,
+      include: { questionPaper: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
 
     res.status(200).json({
       success: true,
@@ -108,7 +170,6 @@ router.get("/available", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log("GET AVAILABLE ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch available scripts.",
@@ -119,10 +180,14 @@ router.get("/available", authMiddleware, async (req, res) => {
 // ============================
 // CLAIM SCRIPT
 // ============================
-
 router.post("/:id/claim", authMiddleware, async (req, res) => {
   try {
-    const answerSheet = await AnswerSheet.findById(req.params.id);
+    const answerSheetId = req.params.id;
+    const teacherId = req.teacher.id || req.teacher._id;
+
+    const answerSheet = await prisma.answerSheet.findUnique({
+      where: { id: answerSheetId }
+    });
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -138,19 +203,22 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
       });
     }
 
-    answerSheet.status = "assigned";
-    answerSheet.assignedTo = req.teacher._id;
-    answerSheet.assignedAt = new Date();
-    await answerSheet.save();
+    const updatedSheet = await prisma.answerSheet.update({
+      where: { id: answerSheetId },
+      data: {
+        status: "assigned",
+        assignedToId: teacherId,
+        assignedAt: new Date(),
+      }
+    });
 
     res.status(200).json({
       success: true,
       message: "Script claimed successfully.",
-      answerSheet,
+      answerSheet: { ...updatedSheet, _id: updatedSheet.id },
     });
   } catch (error) {
     console.log("CLAIM SCRIPT ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to claim script.",
@@ -161,15 +229,19 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
 // ============================
 // GET ASSIGNED SCRIPTS
 // ============================
-
 router.get("/assigned", authMiddleware, async (req, res) => {
   try {
-    const scripts = await AnswerSheet.find({
-      assignedTo: req.teacher._id,
-      status: { $in: ["assigned", "pending"] },
-    })
-      .populate("questionPaper")
-      .sort({ assignedAt: -1 });
+    const teacherId = req.teacher.id || req.teacher._id;
+    const scriptsRaw = await prisma.answerSheet.findMany({
+      where: {
+        assignedToId: teacherId,
+        status: { in: ["assigned", "pending"] },
+      },
+      include: { questionPaper: true },
+      orderBy: { assignedAt: "desc" },
+    });
+
+    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
 
     res.status(200).json({
       success: true,
@@ -178,7 +250,6 @@ router.get("/assigned", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log("GET ASSIGNED ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch assigned scripts.",
@@ -189,15 +260,19 @@ router.get("/assigned", authMiddleware, async (req, res) => {
 // ============================
 // GET PENDING SCRIPTS
 // ============================
-
 router.get("/pending", authMiddleware, async (req, res) => {
   try {
-    const scripts = await AnswerSheet.find({
-      assignedTo: req.teacher._id,
-      status: "pending",
-    })
-      .populate("questionPaper")
-      .sort({ updatedAt: -1 });
+    const teacherId = req.teacher.id || req.teacher._id;
+    const scriptsRaw = await prisma.answerSheet.findMany({
+      where: {
+        assignedToId: teacherId,
+        status: "pending",
+      },
+      include: { questionPaper: true },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
 
     res.status(200).json({
       success: true,
@@ -206,7 +281,6 @@ router.get("/pending", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log("GET PENDING ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch pending scripts.",
@@ -217,15 +291,19 @@ router.get("/pending", authMiddleware, async (req, res) => {
 // ============================
 // GET EVALUATED SCRIPTS
 // ============================
-
 router.get("/evaluated", authMiddleware, async (req, res) => {
   try {
-    const scripts = await AnswerSheet.find({
-      assignedTo: req.teacher._id,
-      status: "evaluated",
-    })
-      .populate("questionPaper")
-      .sort({ updatedAt: -1 });
+    const teacherId = req.teacher.id || req.teacher._id;
+    const scriptsRaw = await prisma.answerSheet.findMany({
+      where: {
+        assignedToId: teacherId,
+        status: "evaluated",
+      },
+      include: { questionPaper: true },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
 
     res.status(200).json({
       success: true,
@@ -234,7 +312,6 @@ router.get("/evaluated", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log("GET EVALUATED ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch evaluated scripts.",
@@ -245,14 +322,16 @@ router.get("/evaluated", authMiddleware, async (req, res) => {
 // ============================
 // GET SINGLE ANSWER SHEET
 // ============================
-
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const answerSheet = await AnswerSheet.findById(req.params.id)
-      .populate({
-        path: "questionPaper",
-        populate: { path: "questions" },
-      });
+    const answerSheet = await prisma.answerSheet.findUnique({
+      where: { id: req.params.id },
+      include: {
+        questionPaper: {
+          include: { questions: true }
+        }
+      }
+    });
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -263,11 +342,17 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
     res.status(200).json({
       success: true,
-      answerSheet,
+      answerSheet: {
+        ...answerSheet,
+        _id: answerSheet.id,
+        questionPaper: {
+            ...answerSheet.questionPaper,
+            _id: answerSheet.questionPaper.id
+        }
+      },
     });
   } catch (error) {
     console.log("GET ANSWER SHEET ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch answer sheet.",

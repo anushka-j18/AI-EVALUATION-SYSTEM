@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import Teacher from "../models/Teacher.js";
+import prisma from "../prismaClient.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -9,7 +9,6 @@ const router = express.Router();
 // ============================
 // REGISTER
 // ============================
-
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, department, employeeId } = req.body;
@@ -21,7 +20,7 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const existingTeacher = await Teacher.findOne({ email });
+    const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
 
     if (existingTeacher) {
       return res.status(400).json({
@@ -33,16 +32,18 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const teacher = await Teacher.create({
-      name,
-      email,
-      password: hashedPassword,
-      department: department || "",
-      employeeId: employeeId || "",
+    const teacher = await prisma.teacher.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        department: department || "",
+        employeeId: employeeId || "",
+      }
     });
 
     const token = jwt.sign(
-      { id: teacher._id },
+      { id: teacher.id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -52,7 +53,7 @@ router.post("/register", async (req, res) => {
       message: "Registration successful.",
       token,
       teacher: {
-        _id: teacher._id,
+        _id: teacher.id,
         name: teacher.name,
         email: teacher.email,
         department: teacher.department,
@@ -61,7 +62,6 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.log("REGISTER ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Registration failed.",
@@ -73,7 +73,6 @@ router.post("/register", async (req, res) => {
 // ============================
 // LOGIN
 // ============================
-
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -85,7 +84,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const teacher = await Teacher.findOne({ email });
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
 
     if (!teacher) {
       return res.status(401).json({
@@ -104,7 +103,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: teacher._id },
+      { id: teacher.id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -114,7 +113,7 @@ router.post("/login", async (req, res) => {
       message: "Login successful.",
       token,
       teacher: {
-        _id: teacher._id,
+        _id: teacher.id,
         name: teacher.name,
         email: teacher.email,
         department: teacher.department,
@@ -124,7 +123,6 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.log("LOGIN ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Login failed.",
@@ -134,9 +132,53 @@ router.post("/login", async (req, res) => {
 });
 
 // ============================
+// RESET PASSWORD
+// ============================
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and new password are required.",
+      });
+    }
+
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
+
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email.",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.teacher.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successful.",
+    });
+  } catch (error) {
+    console.log("RESET PASSWORD ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reset password.",
+      error: error.message,
+    });
+  }
+});
+
+// ============================
 // GET CURRENT TEACHER
 // ============================
-
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     res.status(200).json({
@@ -145,7 +187,6 @@ router.get("/me", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log("GET ME ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch profile.",
@@ -156,25 +197,34 @@ router.get("/me", authMiddleware, async (req, res) => {
 // ============================
 // UPDATE PROFILE
 // ============================
-
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const { name, department, employeeId, phone } = req.body;
+    const teacherId = req.teacher.id || req.teacher._id;
 
-    const updatedTeacher = await Teacher.findByIdAndUpdate(
-      req.teacher._id,
-      { name, department, employeeId, phone },
-      { new: true }
-    ).select("-password");
+    const updatedTeacher = await prisma.teacher.update({
+      where: { id: teacherId },
+      data: { name, department, employeeId, phone },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        department: true,
+        employeeId: true,
+        phone: true,
+        profileImage: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
 
     res.status(200).json({
       success: true,
       message: "Profile updated successfully.",
-      teacher: updatedTeacher,
+      teacher: { ...updatedTeacher, _id: updatedTeacher.id },
     });
   } catch (error) {
     console.log("UPDATE PROFILE ERROR:", error);
-
     res.status(500).json({
       success: false,
       message: "Profile update failed.",

@@ -10,6 +10,7 @@ import {
   User,
   LogOut,
   Sparkles,
+  BarChart2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -24,6 +25,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: "Available Scripts", path: "/dashboard/available-scripts", icon: <FileStack size={20} /> },
     { name: "Pending Scripts", path: "/dashboard/pending", icon: <Clock size={20} /> },
     { name: "Evaluated Scripts", path: "/dashboard/evaluated", icon: <CheckCircle size={20} /> },
+    { name: "Results & Analytics", path: "/dashboard/results", icon: <BarChart2 size={20} /> },
     { name: "Profile", path: "/dashboard/profile", icon: <User size={20} /> },
   ];
 

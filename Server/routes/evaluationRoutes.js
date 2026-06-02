@@ -1,23 +1,15 @@
 import express from "express";
-
-import Evaluation from "../models/Evaluation.js";
+import prisma from "../prismaClient.js";
 
 const router = express.Router();
 
 router.get("/evaluations", async (req, res) => {
-
   try {
-
-    const evaluations =
-      await Evaluation.find();
-
-    res.json(evaluations);
-
+    const evaluations = await prisma.evaluation.findMany();
+    // Map id to _id for backward compatibility
+    res.json(evaluations.map(e => ({ ...e, _id: e.id })));
   } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 });
 

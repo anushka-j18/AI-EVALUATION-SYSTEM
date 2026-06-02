@@ -6,6 +6,21 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    // If a header was explicitly provided in the API call, respect it
+    if (config.headers && config.headers.Authorization) {
+      return config;
+    }
+
+    // Check if URL contains /admin/ (handles baseURL resolution)
+    if (config.url && config.url.includes("/admin/")) {
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        config.headers.Authorization = `Bearer ${adminToken}`;
+        return config;
+      }
+    }
+
+    // Default to standard token for teacher/other routes
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -22,10 +37,9 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-    }
+    // We shouldn't globally redirect on 401 because background auth checks 
+    // (/auth/me or /admin/auth/me) fail intentionally for the other role.
+    // The Contexts will handle setting the user state to null safely.
     return Promise.reject(error);
   }
 );

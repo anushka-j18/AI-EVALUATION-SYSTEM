@@ -14,7 +14,6 @@ import QuestionEditorPage from "./pages/QuestionEditorPage";
 
 // New Teacher Dashboard pages
 import Login from "./pages/Login";
-import Register from "./pages/Register";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import AvailableScripts from "./pages/dashboard/AvailableScripts";
@@ -24,12 +23,17 @@ import EvaluatedScripts from "./pages/dashboard/EvaluatedScripts";
 import DigitalEvaluation from "./pages/dashboard/DigitalEvaluation";
 import AIEvaluationDash from "./pages/dashboard/AIEvaluationDash";
 import TeacherProfile from "./pages/dashboard/TeacherProfile";
+import SubjectResultsList from "./pages/dashboard/SubjectResultsList";
+import SubjectResultDetails from "./pages/dashboard/SubjectResultDetails";
 
 // Admin Dashboard pages
-import AdminLogin from "./pages/admin/AdminLogin";
+
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminHome from "./pages/admin/AdminHome";
 import AssignScripts from "./pages/admin/AssignScripts";
+import TeacherManagement from "./pages/admin/TeacherManagement";
+import AdminSubjectResultsList from "./pages/admin/AdminSubjectResultsList";
+import AdminSubjectResultDetails from "./pages/admin/AdminSubjectResultDetails";
 
 function App() {
   return (
@@ -39,14 +43,15 @@ function App() {
           <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Admin Dashboard Routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminHome />} />
             <Route path="assign" element={<AssignScripts />} />
-            <Route path="teachers" element={<div className="p-8 text-white">Teacher Management UI Coming Soon</div>} />
+            <Route path="teachers" element={<TeacherManagement />} />
+            <Route path="upload-answer-sheet" element={<UploadAnswerSheet />} />
+            <Route path="results" element={<AdminSubjectResultsList />} />
+            <Route path="results/:questionPaperId" element={<AdminSubjectResultDetails />} />
           </Route>
 
           {/* Teacher Dashboard Routes */}
@@ -59,6 +64,8 @@ function App() {
             <Route path="pending" element={<PendingScripts />} />
             <Route path="evaluated" element={<EvaluatedScripts />} />
             <Route path="profile" element={<TeacherProfile />} />
+            <Route path="results" element={<SubjectResultsList />} />
+            <Route path="results/:questionPaperId" element={<SubjectResultDetails />} />
           </Route>
 
           {/* Existing Routes */}
@@ -66,7 +73,6 @@ function App() {
           <Route path="/evaluate" element={<AIEvaluation />} />
           <Route path="/results" element={<Results />} />
           <Route path="/upload-question-paper" element={<UploadQuestionPaper />} />
-          <Route path="/upload-answer-sheet" element={<UploadAnswerSheet />} />
           <Route path="/view-question-papers" element={<ViewQuestionPapers />} />
           <Route path="/detect-questions" element={<DetectedQuestionsEditor />} />
           <Route path="/question-editor/:paperId" element={<QuestionEditorPage />} />

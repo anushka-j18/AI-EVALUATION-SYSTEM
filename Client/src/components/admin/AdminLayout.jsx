@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Outlet, useLocation, NavLink } from "react-router-dom";
-import { ShieldCheck, LayoutDashboard, Users, FileStack, LogOut, Menu, UploadCloud } from "lucide-react";
+import { Outlet, useLocation, NavLink, Navigate } from "react-router-dom";
+import { ShieldCheck, LayoutDashboard, Users, FileStack, LogOut, Menu, UploadCloud, BarChart2 } from "lucide-react";
 import { useAdminAuth } from "../../context/AdminContext";
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
-  const { admin, logout } = useAdminAuth();
+  const { admin, loading, logout } = useAdminAuth();
+
+  if (loading) return <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-4">Loading Admin Portal...</div>;
+  if (!admin) return <Navigate to="/login" />;
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -15,7 +18,8 @@ const AdminLayout = () => {
     { name: "Manage Teachers", path: "/admin/teachers", icon: <Users size={20} /> },
     { name: "Assign Scripts", path: "/admin/assign", icon: <FileStack size={20} /> },
     { name: "Upload Q. Paper", path: "/upload-question-paper", icon: <UploadCloud size={20} /> },
-    { name: "Upload Ans. Sheet", path: "/upload-answer-sheet", icon: <UploadCloud size={20} /> },
+    { name: "Upload Ans. Sheet", path: "/admin/upload-answer-sheet", icon: <UploadCloud size={20} /> },
+    { name: "Class Results", path: "/admin/results", icon: <BarChart2 size={20} /> },
   ];
 
   const getPageTitle = () => {

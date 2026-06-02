@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Sparkles, Loader2, Mail, Lock } from "lucide-react";
+import { useAdminAuth } from "../context/AdminContext";
+import { Sparkles, Loader2, Mail, Lock, ArrowLeft } from "lucide-react";
+import api from "../api/axiosConfig";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
-  const { login } = useAuth();
+  const { login: teacherLogin } = useAuth();
+  const { login: adminLogin } = useAdminAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -17,19 +21,60 @@ const Login = () => {
     setError("");
     setIsSubmitting(true);
 
-    const result = await login(email, password);
-
-    if (result.success) {
-      navigate("/dashboard");
-    } else {
-      setError(result.message);
+    if (isForgotPassword) {
+      try {
+        try {
+          await api.post("/auth/reset-password", { email, newPassword: password });
+          alert("Password reset successfully. Please login with your new password.");
+          setIsForgotPassword(false);
+          setPassword("");
+        } catch (err) {
+          if (err.response?.status === 404) {
+            // Try admin route if teacher route says not found
+            await api.post("/admin/auth/reset-password", { email, newPassword: password });
+            alert("Password reset successfully. Please login with your new password.");
+            setIsForgotPassword(false);
+            setPassword("");
+          } else {
+            setError(err.response?.data?.message || "Failed to reset password.");
+          }
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to connect to the server.");
+      }
       setIsSubmitting(false);
+      return;
+    }
+
+    if (email === "admin@gmail.com" && password === "admin@1234") {
+      const result = await adminLogin(email, password);
+      if (result.success) {
+        navigate("/admin");
+      } else {
+        setError(result.message);
+        setIsSubmitting(false);
+      }
+    } else if (email === "teacher@gmail.com" && password === "teacher@1234") {
+      const result = await teacherLogin(email, password);
+      if (result.success) {
+        navigate("/dashboard");
+      } else {
+        setError(result.message);
+        setIsSubmitting(false);
+      }
+    } else {
+      const result = await teacherLogin(email, password);
+      if (result.success) {
+        navigate("/dashboard");
+      } else {
+        setError(result.message);
+        setIsSubmitting(false);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 blur-[100px] rounded-full pointer-events-none" />
 
@@ -38,9 +83,13 @@ const Login = () => {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 mb-4">
             <Sparkles size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-white">Welcome Back</h1>
+          <h1 className="text-3xl font-black text-white">
+            {isForgotPassword ? "Reset Password" : "Welcome Back"}
+          </h1>
           <p className="text-gray-400 mt-2 text-center text-sm">
-            Sign in to continue to the Digital Evaluation System
+            {isForgotPassword 
+              ? "Enter your email and a new password." 
+              : "Sign in to continue to the Digital Evaluation System"}
           </p>
         </div>
 
@@ -71,9 +120,20 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-400">
+                {isForgotPassword ? "New Password" : "Password"}
+              </label>
+              {!isForgotPassword && (
+                <button 
+                  type="button" 
+                  onClick={() => { setIsForgotPassword(true); setError(""); setPassword(""); }} 
+                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              )}
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Lock size={18} className="text-gray-500" />
@@ -85,6 +145,7 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600"
                 placeholder="••••••••"
+                minLength={6}
               />
             </div>
           </div>
@@ -97,20 +158,20 @@ const Login = () => {
             {isSubmitting ? (
               <Loader2 className="animate-spin" size={24} />
             ) : (
-              "Sign In"
+              isForgotPassword ? "Reset Password" : "Sign In"
             )}
           </button>
         </form>
 
-        <p className="text-center text-gray-400 mt-8 text-sm">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+        {isForgotPassword && (
+          <button 
+            type="button"
+            onClick={() => { setIsForgotPassword(false); setError(""); setPassword(""); }}
+            className="w-full mt-6 text-sm text-gray-400 hover:text-white flex items-center justify-center gap-2 transition-colors"
           >
-            Register here
-          </Link>
-        </p>
+            <ArrowLeft size={16} /> Back to Login
+          </button>
+        )}
       </div>
     </div>
   );

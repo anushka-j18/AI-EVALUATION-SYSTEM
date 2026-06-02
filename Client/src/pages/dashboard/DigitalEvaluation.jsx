@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axiosConfig";
-import { Loader2, Save, Send, Brain, ZoomIn, ZoomOut, Check, X, MousePointer2, FileText, AlertCircle, PanelLeftClose, PanelLeftOpen, Undo2 } from "lucide-react";
+import { Loader2, Save, Send, Brain, ZoomIn, ZoomOut, Check, X, MousePointer2, FileText, AlertCircle, PanelLeftClose, PanelLeftOpen, Undo2, Pencil } from "lucide-react";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const DigitalEvaluation = () => {
   const { answerSheetId } = useParams();
@@ -18,14 +23,33 @@ const DigitalEvaluation = () => {
 
   // New states for Layout & Annotations
   const [showQPaper, setShowQPaper] = useState(false);
-  const [drawMode, setDrawMode] = useState("scroll"); // 'scroll', 'tick', 'cross'
+  const [drawMode, setDrawMode] = useState("scroll"); // 'scroll', 'tick', 'cross', 'pencil'
   const [annotations, setAnnotations] = useState([]);
+  const [numPages, setNumPages] = useState(null);
+  
+  const [currentStroke, setCurrentStroke] = useState(null);
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages);
+  }
   
   const containerRef = useRef(null);
 
   useEffect(() => {
     fetchData();
   }, [answerSheetId]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [loading, error]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -114,18 +138,42 @@ const DigitalEvaluation = () => {
   };
 
   // Annotation Click Handler
-  const handleOverlayClick = (e) => {
+  const handlePointerDown = (e) => {
     if (drawMode === "scroll") return;
     if (!containerRef.current) return;
+
+    if (e.pointerType === "touch" && drawMode === "pencil") {
+      try { e.target.releasePointerCapture(e.pointerId); } catch(err){}
+    }
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    setAnnotations([...annotations, { x, y, type: drawMode }]);
+    if (drawMode === "pencil") {
+      setCurrentStroke([{ x, y }]);
+    } else {
+      setAnnotations([...annotations, { x, y, type: drawMode }]);
+      setDrawMode("scroll"); 
+    }
+  };
+
+  const handlePointerMove = (e) => {
+    if (drawMode !== "pencil" || !currentStroke) return;
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     
-    // Automatically switch back to scroll mode after dropping one annotation for better UX
-    setDrawMode("scroll"); 
+    setCurrentStroke([...currentStroke, { x, y }]);
+  };
+
+  const handlePointerUp = () => {
+    if (drawMode === "pencil" && currentStroke) {
+      setAnnotations([...annotations, { type: "pencil", points: currentStroke }]);
+      setCurrentStroke(null);
+    }
   };
 
   const undoLastAnnotation = () => {
@@ -214,6 +262,13 @@ const DigitalEvaluation = () => {
              >
                <X size={18} className="text-red-500" />
              </button>
+             <button 
+                onClick={() => setDrawMode("pencil")}
+                className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${drawMode === 'pencil' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-white/5'}`}
+                title="Freehand Pencil"
+             >
+               <Pencil size={18} className="text-blue-500" />
+             </button>
              
              <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
              
@@ -234,39 +289,89 @@ const DigitalEvaluation = () => {
           <div 
             ref={containerRef}
             style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s' }} 
-            className="w-full max-w-4xl h-[1000px] relative origin-top bg-white rounded-xl shadow-2xl"
+            className="w-full max-w-4xl min-h-[1000px] h-auto relative origin-top bg-white rounded-xl shadow-2xl"
           >
             {/* DOCUMENT RENDERER */}
             {isPdf ? (
-              <iframe src={`${fileUrl}#toolbar=0`} className="w-full h-full rounded-xl pointer-events-none" title="Answer Script" />
+              <div className="w-full flex flex-col items-center py-4 bg-gray-100 rounded-xl overflow-hidden">
+                <Document
+                  file={fileUrl}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  loading={<div className="p-10 text-cyan-600 font-bold animate-pulse text-xl">Loading PDF Pages...</div>}
+                  error={<div className="p-10 text-red-500 font-bold">Failed to load PDF!</div>}
+                >
+                  {Array.from(new Array(numPages), (el, index) => (
+                    <Page 
+                      key={`page_${index + 1}`} 
+                      pageNumber={index + 1} 
+                      className="mb-6 shadow-md border border-gray-300"
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      width={containerWidth ? containerWidth : 800}
+                    />
+                  ))}
+                </Document>
+              </div>
             ) : (
-              <img src={fileUrl} alt="Answer Script" className="w-full h-full object-contain rounded-xl" />
+              <img src={fileUrl} alt="Answer Script" className="w-full h-auto object-contain rounded-xl" />
             )}
 
             {/* ANNOTATION CANVAS / OVERLAY */}
             <div 
-               className={`absolute inset-0 z-10 ${drawMode !== 'scroll' ? 'cursor-crosshair' : 'pointer-events-none'}`}
-               onClick={handleOverlayClick}
+               className={`absolute inset-0 z-10 ${drawMode !== 'scroll' ? (drawMode === 'pencil' ? 'cursor-crosshair touch-none' : 'cursor-crosshair') : 'pointer-events-none'}`}
+               onPointerDown={handlePointerDown}
+               onPointerMove={handlePointerMove}
+               onPointerUp={handlePointerUp}
+               onPointerLeave={handlePointerUp}
             >
-               {annotations.map((ann, i) => (
-                 <div 
-                    key={i} 
-                    className="absolute font-black text-3xl pointer-events-none drop-shadow-lg"
-                    style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}
-                 >
-                   {ann.type === 'tick' ? (
-                      <Check className="text-green-600" size={40} strokeWidth={4} />
-                   ) : (
-                      <X className="text-red-600" size={40} strokeWidth={4} />
-                   )}
-                 </div>
-               ))}
+               {/* PENCIL STROKES */}
+               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                 {annotations.filter(a => a.type === 'pencil').map((ann, i) => (
+                   <polyline 
+                     key={i} 
+                     points={ann.points.map(p => `${p.x},${p.y}`).join(" ")} 
+                     fill="none" 
+                     stroke="#ef4444" 
+                     strokeWidth="0.2" 
+                     strokeLinecap="round" 
+                     strokeLinejoin="round" 
+                   />
+                 ))}
+                 {currentStroke && (
+                   <polyline 
+                     points={currentStroke.map(p => `${p.x},${p.y}`).join(" ")} 
+                     fill="none" 
+                     stroke="#ef4444" 
+                     strokeWidth="0.2" 
+                     strokeLinecap="round" 
+                     strokeLinejoin="round" 
+                   />
+                 )}
+               </svg>
+
+               {/* TICKS AND CROSSES */}
+               {annotations.map((ann, i) => {
+                 if (ann.type === 'pencil') return null;
+                 return (
+                   <div 
+                      key={i} 
+                      className="absolute font-black text-3xl pointer-events-none drop-shadow-lg"
+                      style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}
+                   >
+                     {ann.type === 'tick' ? (
+                        <Check className="text-green-600" size={40} strokeWidth={4} />
+                     ) : (
+                        <X className="text-red-600" size={40} strokeWidth={4} />
+                     )}
+                   </div>
+                 );
+               })}
             </div>
 
             {/* MESSAGE OVERLAY FOR SCROLLING */}
             {drawMode !== 'scroll' && isPdf && (
                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur pointer-events-none shadow-xl border border-white/10 z-20">
-                 Click anywhere to drop {drawMode === 'tick' ? 'a tick' : 'a cross'}. Switch to Scroll mode to scroll.
+                 {drawMode === 'pencil' ? 'Click and drag to draw.' : `Click anywhere to drop ${drawMode === 'tick' ? 'a tick' : 'a cross'}.`} Switch to Scroll mode to scroll.
                </div>
             )}
           </div>
@@ -289,31 +394,41 @@ const DigitalEvaluation = () => {
 
         {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          <div className="space-y-3">
-            {evaluation.questionWiseMarks.map((qm, idx) => (
-              <div key={qm.questionId} className="bg-slate-900/60 border border-white/5 rounded-2xl p-3 transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="font-bold text-cyan-400 text-base">Q{qm.questionNo}.</div>
-                  <div className="flex items-center gap-1.5">
-                    <input 
-                      type="number" min="0" max={qm.maxMarks} step="0.5"
-                      value={qm.obtainedMarks}
-                      onChange={(e) => handleMarkChange(idx, "obtainedMarks", e.target.value)}
-                      className="w-16 bg-slate-950 border border-white/10 rounded-lg py-1.5 px-2 text-center text-white font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                    />
-                    <span className="text-gray-500 text-sm font-bold">/ {qm.maxMarks}</span>
+          {evaluation.questionWiseMarks.length === 0 ? (
+            <div className="bg-red-500/10 border border-red-500/30 p-5 rounded-2xl text-center shadow-lg">
+              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+              <h3 className="text-red-400 font-bold text-lg mb-1">No Questions Found</h3>
+              <p className="text-red-300 text-sm leading-relaxed">
+                The attached Question Paper does not have any saved questions in the database. Please inform the Admin to upload and save questions for this paper so you can grade them.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {evaluation.questionWiseMarks.map((qm, idx) => (
+                <div key={qm.questionId} className="bg-slate-900/60 border border-white/5 rounded-2xl p-3 transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-bold text-cyan-400 text-base">Q{qm.questionNo}.</div>
+                    <div className="flex items-center gap-1.5">
+                      <input 
+                        type="number" min="0" max={qm.maxMarks} step="0.5"
+                        value={qm.obtainedMarks}
+                        onChange={(e) => handleMarkChange(idx, "obtainedMarks", e.target.value)}
+                        className="w-16 bg-slate-950 border border-white/10 rounded-lg py-1.5 px-2 text-center text-white font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                      />
+                      <span className="text-gray-500 text-sm font-bold">/ {qm.maxMarks}</span>
+                    </div>
                   </div>
+                  <input 
+                    type="text"
+                    placeholder="Add feedback..."
+                    value={qm.comment}
+                    onChange={(e) => handleMarkChange(idx, "comment", e.target.value)}
+                    className="w-full bg-slate-950/50 border border-white/5 rounded-lg p-2 text-xs text-gray-300 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                  />
                 </div>
-                <input 
-                  type="text"
-                  placeholder="Add feedback..."
-                  value={qm.comment}
-                  onChange={(e) => handleMarkChange(idx, "comment", e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/5 rounded-lg p-2 text-xs text-gray-300 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="pt-3 border-t border-white/5">
             <label className="block text-xs font-bold text-gray-300 mb-1">Overall Comments</label>

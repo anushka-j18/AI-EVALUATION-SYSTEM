@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import Admin from "../models/Admin.js";
+import prisma from "../prismaClient.js";
 import { protectAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -11,7 +11,7 @@ router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    const existingAdmin = await Admin.findOne({ email });
+    const existingAdmin = await prisma.admin.findUnique({ where: { email } });
     if (existingAdmin) {
       return res.status(400).json({ message: "Admin already exists" });
     }
@@ -19,22 +19,22 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const admin = new Admin({
-      name,
-      email,
-      password: hashedPassword,
+    const admin = await prisma.admin.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      }
     });
 
-    await admin.save();
-
-    const token = jwt.sign({ id: admin._id, role: "admin" }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: admin.id, role: "admin" }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
     res.status(201).json({
       token,
       admin: {
-        _id: admin._id,
+        _id: admin.id,
         name: admin.name,
         email: admin.email,
       },
@@ -50,7 +50,7 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const admin = await Admin.findOne({ email });
+    const admin = await prisma.admin.findUnique({ where: { email } });
     if (!admin) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -60,14 +60,14 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: admin._id, role: "admin" }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: admin.id, role: "admin" }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
     res.json({
       token,
       admin: {
-        _id: admin._id,
+        _id: admin.id,
         name: admin.name,
         email: admin.email,
       },
@@ -78,10 +78,48 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Reset Password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    const admin = await prisma.admin.findUnique({ where: { email } });
+    if (!admin) {
+      return res.status(404).json({ message: "No admin found with this email" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.admin.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Admin Reset Password Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Get Admin Profile
 router.get("/me", protectAdmin, async (req, res) => {
   try {
-    const admin = await Admin.findById(req.admin.id).select("-password");
+    const admin = await prisma.admin.findUnique({
+      where: { id: req.admin.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+    // Add _id for backward compatibility with frontend if necessary
+    if (admin) {
+        admin._id = admin.id;
+    }
     res.json({ admin });
   } catch (error) {
     res.status(500).json({ message: "Server error" });

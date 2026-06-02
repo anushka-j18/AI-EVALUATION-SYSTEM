@@ -1,61 +1,35 @@
-// routes/questionRoutes.js
-
 import express from "express";
-
-import Question from "../models/Question.js";
+import prisma from "../prismaClient.js";
 
 const router = express.Router();
-
 
 // ======================================
 // GET QUESTIONS BY QUESTION PAPER ID
 // ======================================
+router.get("/paper/:paperId", async (req, res) => {
+  try {
+    const { paperId } = req.params;
 
-router.get(
+    const questionsRaw = await prisma.question.findMany({
+      where: { questionPaperId: paperId },
+      orderBy: { createdAt: 'asc' },
+    });
+    
+    const questions = questionsRaw.map(q => ({ ...q, _id: q.id }));
 
-  "/paper/:paperId",
-
-  async (req, res) => {
-
-    try {
-
-      const { paperId } =
-        req.params;
-
-      const questions =
-        await Question.find({
-
-          questionPaper:
-            paperId,
-        }).sort({
-          createdAt: 1,
-        });
-
-      res.json({
-
-        success: true,
-
-        count:
-          questions.length,
-
-        questions,
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        message:
-          "Failed to fetch questions",
-      });
-    }
+    res.json({
+      success: true,
+      count: questions.length,
+      questions,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch questions",
+    });
   }
-);
-
+});
 
 // ======================================
 // UPDATE ALL QUESTIONS FOR A PAPER
@@ -72,18 +46,25 @@ router.put("/update-all/:paperId", async (req, res) => {
     for (const q of questions) {
       if (q._id) {
         // Update existing question
-        await Question.findByIdAndUpdate(q._id, {
-          qNo: String(q.qNo),
-          question: q.question,
-          maxMarks: Number(q.maxMarks) || 0
+        await prisma.question.update({
+          where: { id: q._id },
+          data: {
+            section: q.section || "",
+            qNo: String(q.qNo),
+            question: q.question,
+            maxMarks: Number(q.maxMarks) || 0
+          }
         });
       } else {
         // Create newly added question
-        await Question.create({
-          qNo: String(q.qNo),
-          question: q.question,
-          maxMarks: Number(q.maxMarks) || 0,
-          questionPaper: paperId
+        await prisma.question.create({
+          data: {
+            section: q.section || "",
+            qNo: String(q.qNo),
+            question: q.question,
+            maxMarks: Number(q.maxMarks) || 0,
+            questionPaperId: paperId
+          }
         });
       }
     }
@@ -95,102 +76,55 @@ router.put("/update-all/:paperId", async (req, res) => {
   }
 });
 
-
 // ======================================
 // UPDATE QUESTION
 // ======================================
+router.put("/:id", async (req, res) => {
+  try {
+    const { qNo, question, maxMarks } = req.body;
 
-router.put(
-
-  "/:id",
-
-  async (req, res) => {
-
-    try {
-
-      const {
+    const updatedQuestion = await prisma.question.update({
+      where: { id: req.params.id },
+      data: {
         qNo,
         question,
-        maxMarks,
-      } = req.body;
+        maxMarks: Number(maxMarks) || 0,
+      }
+    });
 
-      const updatedQuestion =
-        await Question.findByIdAndUpdate(
-
-          req.params.id,
-
-          {
-            qNo,
-            question,
-            maxMarks,
-          },
-
-          {
-            new: true,
-          }
-        );
-
-      res.json({
-
-        success: true,
-
-        question:
-          updatedQuestion,
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        message:
-          "Question update failed",
-      });
-    }
+    res.json({
+      success: true,
+      question: { ...updatedQuestion, _id: updatedQuestion.id },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Question update failed",
+    });
   }
-);
-
+});
 
 // ======================================
 // DELETE QUESTION
 // ======================================
+router.delete("/:id", async (req, res) => {
+  try {
+    await prisma.question.delete({
+      where: { id: req.params.id }
+    });
 
-router.delete(
-
-  "/:id",
-
-  async (req, res) => {
-
-    try {
-
-      await Question.findByIdAndDelete(
-        req.params.id
-      );
-
-      res.json({
-
-        success: true,
-
-        message:
-          "Question deleted successfully",
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-
-        success: false,
-
-        message:
-          "Delete failed",
-      });
-    }
+    res.json({
+      success: true,
+      message: "Question deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Delete failed",
+    });
   }
-);
+});
 
 export default router;

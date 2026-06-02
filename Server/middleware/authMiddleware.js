@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import Teacher from "../models/Teacher.js";
+import prisma from "../prismaClient.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -16,7 +16,20 @@ const authMiddleware = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const teacher = await Teacher.findById(decoded.id).select("-password");
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        department: true,
+        employeeId: true,
+        phone: true,
+        profileImage: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
 
     if (!teacher) {
       return res.status(401).json({
@@ -25,7 +38,7 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    req.teacher = teacher;
+    req.teacher = { ...teacher, _id: teacher.id };
     next();
   } catch (error) {
     console.log("AUTH MIDDLEWARE ERROR:", error.message);

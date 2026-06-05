@@ -66,12 +66,20 @@ router.post("/upload", upload.single("questionPaper"), async (req, res) => {
       }
     });
 
-    const parsedQuestions = await parseQuestionPaperWithGemini(req.file.path, req.file.mimetype);
-    console.log("PARSED QUESTIONS FROM GEMINI:", parsedQuestions);
+    let parsedQuestions = [];
+    let message = "Question Paper Uploaded Successfully. Please review questions.";
+
+    try {
+      parsedQuestions = await parseQuestionPaperWithGemini(req.file.path, req.file.mimetype);
+      console.log("PARSED QUESTIONS FROM GEMINI:", parsedQuestions);
+    } catch (ocrError) {
+      console.log("OCR PARSING ERROR:", ocrError.message);
+      message = "Question Paper Uploaded Successfully. AI parsing failed, please add questions manually.";
+    }
 
     res.status(201).json({
       success: true,
-      message: "Question Paper Uploaded Successfully. Please review questions.",
+      message,
       paper: { ...paper, _id: paper.id },
       questions: parsedQuestions || [],
     });

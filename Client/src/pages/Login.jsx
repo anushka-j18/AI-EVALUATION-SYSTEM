@@ -46,7 +46,7 @@ const Login = () => {
       return;
     }
 
-    if (email === "admin@gmail.com" && password === "admin@1234") {
+    if (email === "admin@gmail.com" && password === "admin@123") {
       const result = await adminLogin(email, password);
       if (result.success) {
         navigate("/admin");

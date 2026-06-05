@@ -34,7 +34,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { section: "", qNo: `${questions.length + 1}`, question: "", maxMarks: 0 },
+      { section: "", qNo: `${questions.length + 1}`, question: "", maxMarks: 0, requiredAttempts: null },
     ]);
   };
 
@@ -68,8 +68,28 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
     }
   };
 
-  // Calculate current total
-  const calculatedTotal = questions.reduce((sum, q) => sum + (Number(q.maxMarks) || 0), 0);
+  // Calculate current total based on Best N attempts
+  const calculateTotal = (qs) => {
+    const sectionGroups = {};
+    let total = 0;
+
+    qs.forEach(q => {
+      const sec = q.section || "default";
+      if (!sectionGroups[sec]) sectionGroups[sec] = [];
+      sectionGroups[sec].push(q);
+    });
+
+    Object.values(sectionGroups).forEach(groupQs => {
+      const reqAttempts = groupQs.find(q => q.requiredAttempts)?.requiredAttempts || groupQs.length;
+      const sorted = [...groupQs].sort((a, b) => (Number(b.maxMarks) || 0) - (Number(a.maxMarks) || 0));
+      const topN = sorted.slice(0, reqAttempts);
+      total += topN.reduce((sum, q) => sum + (Number(q.maxMarks) || 0), 0);
+    });
+
+    return total;
+  };
+
+  const calculatedTotal = calculateTotal(questions);
   const isTotalMatching = calculatedTotal === Number(expectedTotalMarks);
 
   return (
@@ -129,7 +149,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
         {questions.map((q, index) => (
           <div key={q._id || index} className="bg-slate-900/60 border border-white/10 rounded-3xl p-6 relative group">
             
-            <div className="grid md:grid-cols-4 gap-5 mb-5">
+            <div className="grid md:grid-cols-5 gap-5 mb-5">
               
               {/* SECTION */}
               <div>
@@ -139,6 +159,18 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
                   placeholder="e.g. A"
                   value={q.section || ""}
                   onChange={(e) => handleQuestionChange(index, "section", e.target.value)}
+                  className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
+                />
+              </div>
+
+              {/* REQUIRED ATTEMPTS */}
+              <div>
+                <label className="text-sm text-gray-400" title="Optional rules: e.g., attempt 3 out of 5">Req. Attempts</label>
+                <input
+                  type="number"
+                  placeholder="All"
+                  value={q.requiredAttempts || ""}
+                  onChange={(e) => handleQuestionChange(index, "requiredAttempts", e.target.value ? Number(e.target.value) : null)}
                   className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
                 />
               </div>

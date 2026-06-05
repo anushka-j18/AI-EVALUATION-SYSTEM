@@ -46,11 +46,12 @@ router.post("/start/:answerSheetId", authMiddleware, async (req, res) => {
       orderBy: { createdAt: "asc" }
     });
 
-    // Pre-populate
     const questionWiseMarks = questions.map((q) => ({
       questionId: q.id,
       questionNo: q.qNo,
       maxMarks: q.maxMarks,
+      section: q.section,
+      requiredAttempts: q.requiredAttempts,
       obtainedMarks: 0,
       comment: "",
     }));

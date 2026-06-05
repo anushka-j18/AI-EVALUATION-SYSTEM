@@ -73,11 +73,31 @@ const DigitalEvaluation = () => {
     }
   };
 
+  const calculateTotalMarks = (marksList) => {
+    const sectionGroups = {};
+    let total = 0;
+
+    marksList.forEach(q => {
+      const sec = q.section || "default";
+      if (!sectionGroups[sec]) sectionGroups[sec] = [];
+      sectionGroups[sec].push(q);
+    });
+
+    Object.values(sectionGroups).forEach(groupQs => {
+      const reqAttempts = groupQs.find(q => q.requiredAttempts)?.requiredAttempts || groupQs.length;
+      const sorted = [...groupQs].sort((a, b) => (Number(b.obtainedMarks) || 0) - (Number(a.obtainedMarks) || 0));
+      const topN = sorted.slice(0, reqAttempts);
+      total += topN.reduce((sum, q) => sum + (Number(q.obtainedMarks) || 0), 0);
+    });
+
+    return total;
+  };
+
   const handleMarkChange = (index, field, value) => {
     const updatedMarks = [...evaluation.questionWiseMarks];
     updatedMarks[index] = { ...updatedMarks[index], [field]: value };
     
-    const newTotal = updatedMarks.reduce((sum, q) => sum + (Number(q.obtainedMarks) || 0), 0);
+    const newTotal = calculateTotalMarks(updatedMarks);
     
     setEvaluation({
       ...evaluation,
@@ -386,9 +406,16 @@ const DigitalEvaluation = () => {
           <div>
             <h2 className="text-xl font-black text-white">Grading Form</h2>
           </div>
-          <div className="text-right flex items-baseline gap-1">
-            <div className="text-2xl font-black text-cyan-400">{evaluation.totalMarks}</div>
-            <div className="text-sm text-gray-500 font-bold">/ {sheet.questionPaper?.totalMarks}</div>
+          <div className="text-right flex flex-col items-end">
+            <div className="flex items-baseline gap-1">
+              <div className="text-2xl font-black text-cyan-400">{evaluation.totalMarks}</div>
+              <div className="text-sm text-gray-500 font-bold">/ {sheet.questionPaper?.totalMarks}</div>
+            </div>
+            {evaluation.questionWiseMarks.reduce((sum, q) => sum + (Number(q.obtainedMarks) || 0), 0) > (evaluation.totalMarks || 0) && (
+              <div className="text-[10px] text-orange-400 font-bold bg-orange-500/20 px-2 py-0.5 rounded-full mt-1 border border-orange-500/30">
+                Best N Applied
+              </div>
+            )}
           </div>
         </div>
 

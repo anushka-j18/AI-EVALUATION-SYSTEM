@@ -751,7 +751,7 @@ function UploadQuestionPaper() {
         </div>
 
         {/* DETECTED QUESTIONS EDITOR */}
-        {detectedQuestions.length > 0 && paperId && (
+        {paperId && (
           <DetectedQuestionsEditor 
             paperId={paperId} 
             initialQuestions={detectedQuestions} 

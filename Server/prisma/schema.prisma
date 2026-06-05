@@ -53,15 +53,16 @@ model QuestionPaper {
 }
 
 model Question {
-  id              String         @id @default(uuid())
-  section         String?        @default("")
-  qNo             String
-  question        String
-  maxMarks        Int            @default(0)
-  questionPaperId String
-  questionPaper   QuestionPaper  @relation(fields: [questionPaperId], references: [id])
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id               String         @id @default(uuid())
+  section          String?        @default("")
+  qNo              String
+  question         String
+  maxMarks         Int            @default(0)
+  requiredAttempts Int?
+  questionPaperId  String
+  questionPaper    QuestionPaper  @relation(fields: [questionPaperId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model AnswerSheet {

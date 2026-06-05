@@ -33,6 +33,7 @@ STRICT RULES:
 - Extract Question Number / Sub-Question Number perfectly (e.g., "1.a", "2(i)").
 - Extract the Full Question Text accurately.
 - Extract Maximum Marks assigned to each question. If missing, use 0.
+- IDENTIFY OPTIONAL RULES: If a section has an instruction like "Attempt any 3 out of 5", set "requiredAttempts" to 3 for EVERY question in that section. If there are no optional rules, set "requiredAttempts" to null.
 
 OUTPUT FORMAT MUST BE EXACTLY:
 {
@@ -41,7 +42,8 @@ OUTPUT FORMAT MUST BE EXACTLY:
       "section": "Section A",
       "qNo": "1.a",
       "question": "What is the capital of France?",
-      "maxMarks": 2
+      "maxMarks": 2,
+      "requiredAttempts": 3
     }
   ]
 }

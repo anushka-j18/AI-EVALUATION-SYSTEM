@@ -30,6 +30,7 @@ model Teacher {
   accountNumber  String?
   ifscCode       String?
   panel          String?
+  subjectCode    String?        @default("")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   evaluations    Evaluation[]
@@ -58,6 +59,8 @@ model Question {
   qNo              String
   question         String
   maxMarks         Int            @default(0)
+  isOptional       Boolean        @default(false)
+  groupId          String?        @default("")
   requiredAttempts Int?
   questionPaperId  String
   questionPaper    QuestionPaper  @relation(fields: [questionPaperId], references: [id])

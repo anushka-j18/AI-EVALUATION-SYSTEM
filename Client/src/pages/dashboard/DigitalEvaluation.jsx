@@ -74,16 +74,24 @@ const DigitalEvaluation = () => {
   };
 
   const calculateTotalMarks = (marksList) => {
-    const sectionGroups = {};
+    const groups = {};
     let total = 0;
 
-    marksList.forEach(q => {
-      const sec = q.section || "default";
-      if (!sectionGroups[sec]) sectionGroups[sec] = [];
-      sectionGroups[sec].push(q);
+    marksList.forEach((q, idx) => {
+      let key;
+      if (q.groupId) {
+        key = `group_${q.groupId}`;
+      } else if (q.requiredAttempts && q.section) {
+        key = `section_${q.section}`;
+      } else {
+        key = `ungrouped_${idx}`;
+      }
+
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
     });
 
-    Object.values(sectionGroups).forEach(groupQs => {
+    Object.values(groups).forEach(groupQs => {
       const reqAttempts = groupQs.find(q => q.requiredAttempts)?.requiredAttempts || groupQs.length;
       const sorted = [...groupQs].sort((a, b) => (Number(b.obtainedMarks) || 0) - (Number(a.obtainedMarks) || 0));
       const topN = sorted.slice(0, reqAttempts);
@@ -94,8 +102,48 @@ const DigitalEvaluation = () => {
   };
 
   const handleMarkChange = (index, field, value) => {
+    if (field === "obtainedMarks" && Number(value) > 0) {
+      const qm = evaluation.questionWiseMarks[index];
+      const hasComment = qm.comment && qm.comment.trim().length > 0;
+      const hasAnnotations = annotations && annotations.length > 0;
+      
+      if (!hasComment && !hasAnnotations) {
+        alert(`Please add a comment or draw a tick mark on the paper before awarding marks for Q${qm.questionNo}.`);
+        return;
+      }
+    }
+
     const updatedMarks = [...evaluation.questionWiseMarks];
     updatedMarks[index] = { ...updatedMarks[index], [field]: value };
+    
+    const newTotal = calculateTotalMarks(updatedMarks);
+    
+    setEvaluation({
+      ...evaluation,
+      questionWiseMarks: updatedMarks,
+      totalMarks: newTotal,
+    });
+  };
+
+  const handleNotAttemptedToggle = (index) => {
+    const updatedMarks = [...evaluation.questionWiseMarks];
+    const currentlyNA = updatedMarks[index].isNotAttempted;
+    
+    if (!currentlyNA) {
+      updatedMarks[index] = { 
+        ...updatedMarks[index], 
+        isNotAttempted: true, 
+        obtainedMarks: 0, 
+        comment: "Not Attempted" 
+      };
+    } else {
+      updatedMarks[index] = { 
+        ...updatedMarks[index], 
+        isNotAttempted: false, 
+        obtainedMarks: 0, 
+        comment: "" 
+      };
+    }
     
     const newTotal = calculateTotalMarks(updatedMarks);
     
@@ -124,6 +172,30 @@ const DigitalEvaluation = () => {
   };
 
   const handleSubmit = async () => {
+    const evaluationStartTime = new Date(evaluation.createdAt).getTime();
+    const currentTime = new Date().getTime();
+    const durationInMinutes = (currentTime - evaluationStartTime) / 1000 / 60;
+
+    if (durationInMinutes < 2) {
+      const remainingSeconds = Math.ceil((2 * 60) - ((currentTime - evaluationStartTime) / 1000));
+      alert(`Minimum evaluation time is 2 minutes. Please review the paper carefully.\nWait ${Math.floor(remainingSeconds/60)}m ${remainingSeconds%60}s more before submitting.`);
+      return;
+    }
+
+    const hasGlobalAnnotations = annotations && annotations.length > 0;
+    const invalidQuestions = evaluation.questionWiseMarks.filter(qm => 
+      Number(qm.obtainedMarks) > 0 && 
+      !(qm.comment && qm.comment.trim().length > 0) &&
+      !hasGlobalAnnotations &&
+      !qm.isNotAttempted
+    );
+
+    if (invalidQuestions.length > 0) {
+      const qNos = invalidQuestions.map(q => q.questionNo).join(", ");
+      alert(`You have awarded marks for Q(${qNos}) without providing any feedback. Please add a comment or draw tick marks on the paper.`);
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to submit? This cannot be undone.")) return;
     
     setSubmitting(true);
@@ -432,15 +504,24 @@ const DigitalEvaluation = () => {
           ) : (
             <div className="space-y-3">
               {evaluation.questionWiseMarks.map((qm, idx) => (
-                <div key={qm.questionId} className="bg-slate-900/60 border border-white/5 rounded-2xl p-3 transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80">
+                <div key={qm.questionId} className={`bg-slate-900/60 border border-white/5 rounded-2xl p-3 transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80 ${qm.isNotAttempted ? 'opacity-60' : ''}`}>
                   <div className="flex justify-between items-center mb-2">
-                    <div className="font-bold text-cyan-400 text-base">Q{qm.questionNo}.</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-bold text-cyan-400 text-base">Q{qm.questionNo}.</div>
+                      <button
+                        onClick={() => handleNotAttemptedToggle(idx)}
+                        className={`text-[10px] px-2 py-1 rounded-md font-bold transition ${qm.isNotAttempted ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-gray-500 border border-white/5 hover:bg-slate-700'}`}
+                      >
+                        {qm.isNotAttempted ? 'Not Attempted' : 'Mark NA'}
+                      </button>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <input 
                         type="number" min="0" max={qm.maxMarks} step="0.5"
                         value={qm.obtainedMarks}
+                        disabled={qm.isNotAttempted}
                         onChange={(e) => handleMarkChange(idx, "obtainedMarks", e.target.value)}
-                        className="w-16 bg-slate-950 border border-white/10 rounded-lg py-1.5 px-2 text-center text-white font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                        className={`w-16 bg-slate-950 border border-white/10 rounded-lg py-1.5 px-2 text-center text-white font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
                       />
                       <span className="text-gray-500 text-sm font-bold">/ {qm.maxMarks}</span>
                     </div>
@@ -449,8 +530,9 @@ const DigitalEvaluation = () => {
                     type="text"
                     placeholder="Add feedback..."
                     value={qm.comment}
+                    disabled={qm.isNotAttempted}
                     onChange={(e) => handleMarkChange(idx, "comment", e.target.value)}
-                    className="w-full bg-slate-950/50 border border-white/5 rounded-lg p-2 text-xs text-gray-300 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                    className={`w-full bg-slate-950/50 border border-white/5 rounded-lg p-2 text-xs text-gray-300 focus:ring-1 focus:ring-cyan-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
               ))}

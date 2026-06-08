@@ -1,8 +1,12 @@
 import express from "express";
 import { protectAdmin } from "../middleware/authMiddleware.js";
 import prisma from "../prismaClient.js";
+import multer from "multer";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // GET total stats for Admin Dashboard
 router.get("/stats", protectAdmin, async (req, res) => {
@@ -49,6 +53,7 @@ router.get("/teachers", protectAdmin, async (req, res) => {
         accountNumber: true,
         ifscCode: true,
         panel: true,
+        subjectCode: true,
         createdAt: true,
         updatedAt: true
       }
@@ -66,7 +71,7 @@ import bcrypt from "bcryptjs";
 // POST create new teacher
 router.post("/teachers", protectAdmin, async (req, res) => {
   try {
-    const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel } = req.body;
+    const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
     
     const existing = await prisma.teacher.findUnique({ where: { email } });
     if (existing) return res.status(400).json({ message: "Teacher with this email already exists." });
@@ -76,7 +81,7 @@ router.post("/teachers", protectAdmin, async (req, res) => {
 
     const teacher = await prisma.teacher.create({
       data: {
-        name, email, password: hashedPassword, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel
+        name, email, password: hashedPassword, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode
       }
     });
 
@@ -87,16 +92,74 @@ router.post("/teachers", protectAdmin, async (req, res) => {
   }
 });
 
+// POST /admin/teachers/bulk-upload
+router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+  const results = [];
+  
+  const stream = Readable.from(req.file.buffer);
+  
+  stream
+    .pipe(csvParser())
+    .on("data", (data) => results.push(data))
+    .on("end", async () => {
+      let successCount = 0;
+      let failedCount = 0;
+      
+      const salt = await bcrypt.genSalt(10);
+      const defaultPassword = await bcrypt.hash("welcome123", salt);
+
+      for (const row of results) {
+        try {
+          if (!row.email || !row.name) {
+            failedCount++;
+            continue;
+          }
+
+          const existing = await prisma.teacher.findUnique({ where: { email: row.email } });
+          if (existing) {
+            failedCount++;
+            continue;
+          }
+
+          const randomChars = Math.random().toString(36).substring(2, 7).toUpperCase();
+          const employeeId = `FAC-${randomChars}`;
+
+          await prisma.teacher.create({
+            data: {
+              name: row.name,
+              email: row.email,
+              password: defaultPassword,
+              department: row.department || "",
+              employeeId: employeeId,
+              phone: row.phone || "",
+              collegeName: row.collegeName || "",
+              designation: row.designation || "",
+              subjectCode: row.subjectCode || "",
+            }
+          });
+          successCount++;
+        } catch (err) {
+          console.error("Row import error", err);
+          failedCount++;
+        }
+      }
+      
+      res.json({ message: `Import complete. Success: ${successCount}, Failed: ${failedCount}` });
+    });
+});
+
 // PUT update existing teacher
 router.put("/teachers/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel } = req.body;
+    const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
 
     const existing = await prisma.teacher.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ message: "Teacher not found." });
 
-    let updateData = { name, email, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel };
+    let updateData = { name, email, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode };
     
     if (password) {
       const salt = await bcrypt.genSalt(10);

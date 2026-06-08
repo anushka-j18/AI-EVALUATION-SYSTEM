@@ -216,7 +216,7 @@ function Results() {
                     text-cyan-400
                     "
                   >
-                    {result.totalMarks}
+                    {result.totalMarks} / {result.marks.reduce((sum, m) => sum + (Number(m.maxMarks) || 0), 0)}
                   </h3>
 
                 </div>
@@ -294,9 +294,7 @@ function Results() {
                             font-bold
                             "
                           >
-                            {m.obtainedMarks}
-                            {" "}
-                            Marks
+                            {m.obtainedMarks} / {m.maxMarks}
                           </p>
 
                         </div>

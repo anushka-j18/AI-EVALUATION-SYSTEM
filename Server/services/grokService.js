@@ -1,161 +1,56 @@
 import axios from "axios";
 import dotenv from "dotenv";
 dotenv.config();
-const API_KEY=process.env.GROK_API_KEY;
-export const evaluateAnswer =
-  async (
-    question,
-    answer,
-    maxMarks,
-    checkingMode
-  ) => {
-     
-    let evaluationStyle =
-      "";
 
-    if (
-      checkingMode ===
-      "easy"
-    ) {
+export const evaluateAnswer = async (question, answer, maxMarks, checkingMode) => {
+  let evaluationStyle = "";
 
-      evaluationStyle = `
-      Be lenient.
-      Give marks for effort.
-      Allow partial correctness.
-      `;
+  if (checkingMode === "easy") {
+    evaluationStyle = `Be lenient. Give marks for effort. Allow partial correctness.`;
+  } else if (checkingMode === "medium") {
+    evaluationStyle = `Evaluate fairly using standard university evaluation.`;
+  } else if (checkingMode === "strict") {
+    evaluationStyle = `Be strict. Require precise technical concepts. Deduct marks for incomplete answers.`;
+  }
 
-    } else if (
-      checkingMode ===
-      "medium"
-    ) {
-
-      evaluationStyle = `
-      Evaluate fairly using standard
-      university evaluation.
-      `;
-
-    } else if (
-      checkingMode ===
-      "strict"
-    ) {
-
-      evaluationStyle = `
-      Be strict.
-      Require precise technical concepts.
-      Deduct marks for incomplete answers.
-      `;
-    }
-
-    try {
-
-      const response =
-        await axios.post(
-
-          "https://api.groq.com/openai/v1/chat/completions",
-
+  try {
+    const response = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
           {
-
-            model:
-              "llama-3.3-70b-versatile",
-
-            temperature: 0.2,
-
-            response_format: {
-              type:
-                "json_object",
-            },
-
-            messages: [
-
-              {
-                role: "system",
-
-                content: `
-You are an expert university evaluator.
-
-Always return ONLY valid JSON.
-
-Do not return markdown.
-Do not return explanation text.
-`,
-              },
-
-              {
-                role: "user",
-
-                content: `
-${evaluationStyle}
-
-Question:
-${question}
-
-Student Answer:
-${answer}
-
-Maximum Marks:
-${maxMarks}
-
-Return JSON exactly:
-
-{
-  "marksAwarded": number,
-  "feedback": "text"
-}
-`,
-              },
-            ],
+            role: "system",
+            content: `You are an expert university evaluator.\n\nAlways return ONLY valid JSON.\n\nDo not return markdown.\nDo not return explanation text.`,
           },
-
           {
-            headers: {
+            role: "user",
+            content: `${evaluationStyle}\n\nQuestion:\n${question}\n\nStudent Answer:\n${answer}\n\nMaximum Marks:\n${maxMarks}\n\nReturn JSON exactly:\n\n{\n  "marksAwarded": number,\n  "feedback": "text"\n}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GROK_API_KEY?.trim()}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-              Authorization:
-                `Bearer ${API_KEY}`,
+    let content = response.data.choices[0].message.content;
 
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
+    // CLEAN RESPONSE
+    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
 
-      let content =
-        response.data
-        .choices[0]
-        .message
-        .content;
-
-      // CLEAN RESPONSE
-
-      content = content
-        .replace(
-          /```json/g,
-          ""
-        )
-        .replace(
-          /```/g,
-          ""
-        )
-        .trim();
-
-      const parsedResponse =
-        JSON.parse(content);
-
-      return parsedResponse;
-
-    } catch (error) {
-
-      console.log(
-        "Groq API Error:",
-        error.response?.data ||
-        error.message
-      );
-
-      return {
-
-        marksAwarded: 0,
-
-        feedback:
-          "AI evaluation failed",
-      };
-    }
-  };
+    const parsedResponse = JSON.parse(content);
+    return parsedResponse;
+  } catch (error) {
+    console.log("Groq API Error:", error.response?.data || error.message);
+    return {
+      marksAwarded: 0,
+      feedback: "AI evaluation failed",
+    };
+  }
+};

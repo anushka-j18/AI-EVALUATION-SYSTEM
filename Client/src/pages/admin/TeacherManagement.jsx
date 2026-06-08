@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Edit2, Trash2, X, Loader2, Upload } from 'lucide-react';
 import api from '../../api/axiosConfig';
 
 const TeacherManagement = () => {
@@ -8,10 +8,12 @@ const TeacherManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', department: '', employeeId: '', phone: '',
-    collegeName: '', designation: '', accountNumber: '', ifscCode: '', panel: ''
+    collegeName: '', designation: '', accountNumber: '', ifscCode: '', panel: '', subjectCode: ''
   });
 
   const fetchTeachers = async () => {
@@ -33,6 +35,33 @@ const TeacherManagement = () => {
     fetchTeachers();
   }, []);
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const adminToken = localStorage.getItem("adminToken");
+      const res = await api.post('/admin/teachers/bulk-upload', formData, {
+        headers: { 
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      alert(res.data.message);
+      fetchTeachers();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to upload CSV');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -51,13 +80,14 @@ const TeacherManagement = () => {
         designation: teacher.designation || '',
         accountNumber: teacher.accountNumber || '',
         ifscCode: teacher.ifscCode || '',
-        panel: teacher.panel || ''
+        panel: teacher.panel || '',
+        subjectCode: teacher.subjectCode || ''
       });
     } else {
       setEditingId(null);
       setFormData({
         name: '', email: '', password: '', department: '', employeeId: '', phone: '',
-        collegeName: '', designation: '', accountNumber: '', ifscCode: '', panel: ''
+        collegeName: '', designation: '', accountNumber: '', ifscCode: '', panel: '', subjectCode: ''
       });
     }
     setIsModalOpen(true);
@@ -122,12 +152,29 @@ const TeacherManagement = () => {
           <h1 className="text-3xl font-bold text-white">Teacher Management</h1>
           <p className="text-gray-400 mt-1">Manage all teachers and their details</p>
         </div>
-        <button 
-          onClick={() => openModal()}
-          className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus size={20} /> Add Teacher
-        </button>
+        <div className="flex gap-4">
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+          >
+            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />} 
+            Bulk Upload
+          </button>
+          <button 
+            onClick={() => openModal()}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus size={20} /> Add Teacher
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#0f172a] rounded-xl border border-slate-700 overflow-hidden">
@@ -135,10 +182,9 @@ const TeacherManagement = () => {
           <table className="w-full text-left text-sm text-gray-300">
             <thead className="bg-slate-800 text-gray-400 text-xs uppercase">
               <tr>
-                <th className="px-6 py-4">Name / Email</th>
-                <th className="px-6 py-4">College / Dept</th>
-                <th className="px-6 py-4">Designation</th>
-                <th className="px-6 py-4">Panel</th>
+                <th className="px-6 py-4">Name & Contact</th>
+                <th className="px-6 py-4">Professional Details</th>
+                <th className="px-6 py-4">Assignments</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -147,21 +193,27 @@ const TeacherManagement = () => {
                 <tr key={teacher._id} className="hover:bg-slate-800/50">
                   <td className="px-6 py-4">
                     <div className="font-medium text-white">{teacher.name}</div>
-                    <div className="text-xs text-gray-500">{teacher.email}</div>
+                    <div className="text-xs text-cyan-400 font-mono mt-0.5">{teacher.employeeId || 'NO-ID'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{teacher.email}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div>{teacher.collegeName || '-'}</div>
                     <div className="text-xs text-gray-500">{teacher.department || '-'}</div>
+                    <div className="text-xs text-gray-500 mt-1">{teacher.designation || '-'}</div>
                   </td>
-                  <td className="px-6 py-4">{teacher.designation || '-'}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 flex flex-col gap-2 items-start">
                     <span className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-md text-xs border border-cyan-500/20">
-                      {teacher.panel || 'Unassigned'}
+                      Panel: {teacher.panel || 'Unassigned'}
+                    </span>
+                    <span className="bg-purple-500/10 text-purple-400 px-2 py-1 rounded-md text-xs border border-purple-500/20">
+                      Subject: {teacher.subjectCode || 'None'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right flex justify-end gap-3">
-                    <button onClick={() => openModal(teacher)} className="text-blue-400 hover:text-blue-300"><Edit2 size={18} /></button>
-                    <button onClick={() => handleDelete(teacher._id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-3">
+                      <button onClick={() => openModal(teacher)} className="text-blue-400 hover:text-blue-300"><Edit2 size={18} /></button>
+                      <button onClick={() => handleDelete(teacher._id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -227,6 +279,10 @@ const TeacherManagement = () => {
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-1">Panel</label>
                       <input type="text" name="panel" value={formData.panel} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" placeholder="e.g. Panel A, Senior Reviewers" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Subject Code(s)</label>
+                      <input type="text" name="subjectCode" value={formData.subjectCode} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" placeholder="e.g. CS101, IT201" />
                     </div>
                   </div>
                 </div>

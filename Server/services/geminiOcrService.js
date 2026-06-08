@@ -33,7 +33,10 @@ STRICT RULES:
 - Extract Question Number / Sub-Question Number perfectly (e.g., "1.a", "2(i)").
 - Extract the Full Question Text accurately.
 - Extract Maximum Marks assigned to each question. If missing, use 0.
-- IDENTIFY OPTIONAL RULES: If a section has an instruction like "Attempt any 3 out of 5", set "requiredAttempts" to 3 for EVERY question in that section. If there are no optional rules, set "requiredAttempts" to null.
+- IDENTIFY OPTIONAL GROUPS & "OR" CONDITIONS:
+  - If a section says "Attempt any N out of M", set "isOptional": true and assign the SAME unique "groupId" (e.g., "group_section_A") to all those M questions. Set "requiredAttempts": N for all of them.
+  - If questions are separated by "OR" (e.g., Q1 OR Q2), set "isOptional": true and assign the SAME unique "groupId" (e.g., "group_Q1_OR_Q2") to BOTH questions. Set "requiredAttempts": 1 for both of them.
+  - If a question is mandatory and has no optional rules, set "isOptional": false, "groupId": "", and "requiredAttempts": null.
 
 OUTPUT FORMAT MUST BE EXACTLY:
 {
@@ -43,6 +46,8 @@ OUTPUT FORMAT MUST BE EXACTLY:
       "qNo": "1.a",
       "question": "What is the capital of France?",
       "maxMarks": 2,
+      "isOptional": true,
+      "groupId": "group_section_A",
       "requiredAttempts": 3
     }
   ]

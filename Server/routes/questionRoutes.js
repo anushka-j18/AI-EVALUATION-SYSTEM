@@ -52,7 +52,10 @@ router.put("/update-all/:paperId", async (req, res) => {
             section: q.section || "",
             qNo: String(q.qNo),
             question: q.question,
-            maxMarks: Number(q.maxMarks) || 0
+            maxMarks: Number(q.maxMarks) || 0,
+            isOptional: Boolean(q.isOptional),
+            groupId: q.groupId || "",
+            requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null
           }
         });
       } else {
@@ -63,6 +66,9 @@ router.put("/update-all/:paperId", async (req, res) => {
             qNo: String(q.qNo),
             question: q.question,
             maxMarks: Number(q.maxMarks) || 0,
+            isOptional: Boolean(q.isOptional),
+            groupId: q.groupId || "",
+            requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null,
             questionPaperId: paperId
           }
         });

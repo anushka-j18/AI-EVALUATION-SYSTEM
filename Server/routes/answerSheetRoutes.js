@@ -155,6 +155,17 @@ router.get("/available", authMiddleware, async (req, res) => {
       ];
     }
 
+    const assignedCodes = req.teacher.subjectCode
+      ? req.teacher.subjectCode.split(',').map(c => c.trim()).filter(Boolean)
+      : [];
+
+    if (assignedCodes.length > 0) {
+      where.questionPaper = { subjectCode: { in: assignedCodes } };
+    } else {
+      // Force empty result if no subject codes are assigned
+      where.questionPaper = { subjectCode: { in: [] } };
+    }
+
     const scriptsRaw = await prisma.answerSheet.findMany({
       where,
       include: { questionPaper: true },

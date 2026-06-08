@@ -119,7 +119,7 @@ const EvaluatedScripts = () => {
                     {details && (
                       <div className="text-right">
                         <div className="text-2xl font-black text-cyan-400">
-                          {details.totalMarks}
+                          {details.totalMarks} / {details.questionWiseMarks?.reduce((sum, qm) => sum + (Number(qm.maxMarks) || 0), 0) || 0}
                         </div>
                         <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
                           Total Marks
@@ -188,6 +188,20 @@ const EvaluatedScripts = () => {
                             </div>
                           </div>
                         )}
+
+                        {/* Evaluator Details */}
+                        <div className="pt-4 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between text-sm text-gray-400">
+                          <div>
+                            <span className="font-bold text-white">Evaluator:</span> {details.teacher?.name || "Unknown"} 
+                            <span className="mx-2">|</span> 
+                            <span className="font-bold text-white">Faculty ID:</span> {details.teacher?.employeeId || "N/A"}
+                          </div>
+                          <div>
+                            <span className="font-bold text-white">Evaluated On:</span> {details.submittedAt ? new Date(details.submittedAt).toLocaleDateString() : "N/A"} 
+                            <span className="mx-2">at</span> 
+                            {details.submittedAt ? new Date(details.submittedAt).toLocaleTimeString() : "N/A"}
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center text-gray-500 py-4">

@@ -26,6 +26,7 @@ const authMiddleware = async (req, res, next) => {
         employeeId: true,
         phone: true,
         profileImage: true,
+        subjectCode: true,
         createdAt: true,
         updatedAt: true
       }

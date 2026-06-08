@@ -52,6 +52,8 @@ router.post("/start/:answerSheetId", authMiddleware, async (req, res) => {
       maxMarks: q.maxMarks,
       section: q.section,
       requiredAttempts: q.requiredAttempts,
+      isOptional: q.isOptional,
+      groupId: q.groupId,
       obtainedMarks: 0,
       comment: "",
     }));
@@ -184,7 +186,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
       include: {
         answerSheet: true,
         teacher: {
-          select: { id: true, name: true, email: true, department: true }
+          select: { id: true, name: true, email: true, department: true, employeeId: true }
         }
       }
     });
@@ -226,6 +228,11 @@ router.get("/by-sheet/:answerSheetId", authMiddleware, async (req, res) => {
       where: {
         answerSheetId: req.params.answerSheetId,
         teacherId: teacherId,
+      },
+      include: {
+        teacher: {
+          select: { id: true, name: true, employeeId: true }
+        }
       }
     });
 

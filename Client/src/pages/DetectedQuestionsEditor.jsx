@@ -34,7 +34,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { section: "", qNo: `${questions.length + 1}`, question: "", maxMarks: 0, requiredAttempts: null },
+      { section: "", qNo: `${questions.length + 1}`, question: "", maxMarks: 0, requiredAttempts: null, isOptional: false, groupId: "" },
     ]);
   };
 
@@ -68,18 +68,26 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
     }
   };
 
-  // Calculate current total based on Best N attempts
+  // Calculate current total based on Best N attempts with OR logic
   const calculateTotal = (qs) => {
-    const sectionGroups = {};
+    const groups = {};
     let total = 0;
 
-    qs.forEach(q => {
-      const sec = q.section || "default";
-      if (!sectionGroups[sec]) sectionGroups[sec] = [];
-      sectionGroups[sec].push(q);
+    qs.forEach((q, idx) => {
+      let key;
+      if (q.groupId) {
+        key = `group_${q.groupId}`;
+      } else if (q.requiredAttempts && q.section) {
+        key = `section_${q.section}`;
+      } else {
+        key = `ungrouped_${idx}`;
+      }
+
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
     });
 
-    Object.values(sectionGroups).forEach(groupQs => {
+    Object.values(groups).forEach(groupQs => {
       const reqAttempts = groupQs.find(q => q.requiredAttempts)?.requiredAttempts || groupQs.length;
       const sorted = [...groupQs].sort((a, b) => (Number(b.maxMarks) || 0) - (Number(a.maxMarks) || 0));
       const topN = sorted.slice(0, reqAttempts);
@@ -149,62 +157,85 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
         {questions.map((q, index) => (
           <div key={q._id || index} className="bg-slate-900/60 border border-white/10 rounded-3xl p-6 relative group">
             
-            <div className="grid md:grid-cols-5 gap-5 mb-5">
-              
-              {/* SECTION */}
-              <div>
-                <label className="text-sm text-gray-400">Section</label>
-                <input
-                  type="text"
-                  placeholder="e.g. A"
-                  value={q.section || ""}
-                  onChange={(e) => handleQuestionChange(index, "section", e.target.value)}
-                  className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
+            <div className={`p-4 rounded-3xl mb-5 border ${q.isOptional ? 'border-orange-500/30 bg-orange-500/5' : 'border-white/5 bg-slate-900/40'}`}>
+              <div className="grid md:grid-cols-4 lg:grid-cols-7 gap-4">
+                {/* SECTION */}
+                <div>
+                  <label className="text-xs text-gray-400 font-bold">Section</label>
+                  <input
+                    type="text"
+                    value={q.section || ""}
+                    onChange={(e) => handleQuestionChange(index, "section", e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
 
-              {/* REQUIRED ATTEMPTS */}
-              <div>
-                <label className="text-sm text-gray-400" title="Optional rules: e.g., attempt 3 out of 5">Req. Attempts</label>
-                <input
-                  type="number"
-                  placeholder="All"
-                  value={q.requiredAttempts || ""}
-                  onChange={(e) => handleQuestionChange(index, "requiredAttempts", e.target.value ? Number(e.target.value) : null)}
-                  className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
+                {/* GROUP ID */}
+                <div>
+                  <label className="text-xs text-gray-400 font-bold" title="Must be same for 'OR' questions">Group ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Q1_OR_Q2"
+                    value={q.groupId || ""}
+                    onChange={(e) => handleQuestionChange(index, "groupId", e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
 
-              {/* QNO */}
-              <div>
-                <label className="text-sm text-gray-400">Question No</label>
-                <input
-                  type="text"
-                  value={q.qNo || ""}
-                  onChange={(e) => handleQuestionChange(index, "qNo", e.target.value)}
-                  className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
+                {/* IS OPTIONAL */}
+                <div className="flex flex-col justify-center items-center">
+                  <label className="text-xs text-gray-400 font-bold">Optional?</label>
+                  <input
+                    type="checkbox"
+                    checked={q.isOptional || false}
+                    onChange={(e) => handleQuestionChange(index, "isOptional", e.target.checked)}
+                    className="w-5 h-5 mt-2 rounded bg-slate-800 border border-white/10 text-cyan-500 focus:ring-cyan-500 focus:ring-2"
+                  />
+                </div>
 
-              {/* MARKS */}
-              <div>
-                <label className="text-sm text-gray-400">Max Marks</label>
-                <input
-                  type="number"
-                  value={q.maxMarks || 0}
-                  onChange={(e) => handleQuestionChange(index, "maxMarks", e.target.value)}
-                  className="w-full mt-2 bg-slate-800 border border-white/10 rounded-2xl p-4 text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
+                {/* REQUIRED ATTEMPTS */}
+                <div>
+                  <label className="text-xs text-gray-400 font-bold">Req. Attempts</label>
+                  <input
+                    type="number"
+                    placeholder="All"
+                    value={q.requiredAttempts || ""}
+                    onChange={(e) => handleQuestionChange(index, "requiredAttempts", e.target.value ? Number(e.target.value) : null)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
 
-              {/* DELETE */}
-              <div className="flex items-end">
-                <button
-                  onClick={() => deleteQuestion(q._id, index)}
-                  className="w-full flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/30 text-red-400 py-4 rounded-2xl font-bold hover:bg-red-500/30 transition"
-                >
-                  <Trash2 size={18} /> Delete
-                </button>
+                {/* QNO */}
+                <div>
+                  <label className="text-xs text-gray-400 font-bold">Q. No</label>
+                  <input
+                    type="text"
+                    value={q.qNo || ""}
+                    onChange={(e) => handleQuestionChange(index, "qNo", e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
+
+                {/* MARKS */}
+                <div>
+                  <label className="text-xs text-gray-400 font-bold">Max Marks</label>
+                  <input
+                    type="number"
+                    value={q.maxMarks || 0}
+                    onChange={(e) => handleQuestionChange(index, "maxMarks", e.target.value)}
+                    className="w-full mt-1 bg-slate-800 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
+
+                {/* DELETE */}
+                <div className="flex items-end">
+                  <button
+                    onClick={() => deleteQuestion(q._id, index)}
+                    className="w-full flex items-center justify-center gap-1 bg-red-500/20 text-red-400 p-3 rounded-xl font-bold hover:bg-red-500/30 transition text-sm"
+                  >
+                    <Trash2 size={16} /> Del
+                  </button>
+                </div>
               </div>
             </div>
 

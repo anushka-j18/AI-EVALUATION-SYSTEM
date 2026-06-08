@@ -81,15 +81,19 @@ router.post("/auto-evaluate", upload.single("answerSheet"), async (req, res) => 
         checkingMode
       );
 
+      let awarded = Number(result.marksAwarded);
+      if (isNaN(awarded) || awarded < 0) awarded = 0;
+      if (awarded > q.maxMarks) awarded = q.maxMarks;
+
       evaluations.push({
         questionNo: q.qNo,
         question: q.question,
-        obtainedMarks: result.marksAwarded,
+        obtainedMarks: awarded,
         maxMarks: q.maxMarks,
         feedback: result.feedback,
       });
 
-      totalMarks += Number(result.marksAwarded);
+      totalMarks += awarded;
     }
 
     const evaluation = await prisma.evaluation.create({

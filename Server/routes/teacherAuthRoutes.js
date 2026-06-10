@@ -3,11 +3,15 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "../prismaClient.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import { sendOTP } from "../services/emailService.js";
 
 const router = express.Router();
 
+// Helper to generate 6-digit OTP
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 // ============================
-// REGISTER
+// REGISTER (Step 1: Create inactive user & send OTP)
 // ============================
 router.post("/register", async (req, res) => {
   try {
@@ -20,45 +24,55 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
+    let teacher = await prisma.teacher.findUnique({ where: { email } });
 
-    if (existingTeacher) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already registered.",
-      });
+    if (teacher) {
+      if (teacher.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already registered and active.",
+        });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-    const teacher = await prisma.teacher.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        department: department || "",
-        employeeId: employeeId || "",
-      }
-    });
+    if (teacher) {
+      // Update inactive teacher
+      teacher = await prisma.teacher.update({
+        where: { email },
+        data: { name, password: hashedPassword, department: department || "", employeeId: employeeId || "", otp, otpExpiry }
+      });
+    } else {
+      // Create new inactive teacher
+      teacher = await prisma.teacher.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          department: department || "",
+          employeeId: employeeId || "",
+          isActive: false,
+          otp,
+          otpExpiry
+        }
+      });
+    }
 
-    const token = jwt.sign(
-      { id: teacher.id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const emailSent = await sendOTP(email, otp);
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email. Please try again.",
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Registration successful.",
-      token,
-      teacher: {
-        _id: teacher.id,
-        name: teacher.name,
-        email: teacher.email,
-        department: teacher.department,
-        employeeId: teacher.employeeId,
-      },
+      message: "OTP sent to email. Please verify to activate your account.",
     });
   } catch (error) {
     console.log("REGISTER ERROR:", error);
@@ -67,6 +81,65 @@ router.post("/register", async (req, res) => {
       message: "Registration failed.",
       error: error.message,
     });
+  }
+});
+
+// ============================
+// VERIFY REGISTRATION (Step 2: Verify OTP & Activate)
+// ============================
+router.post("/verify-registration", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required.",
+      });
+    }
+
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    if (teacher.isActive) {
+      return res.status(400).json({ success: false, message: "Account already active." });
+    }
+
+    if (teacher.otp !== otp || new Date() > new Date(teacher.otpExpiry)) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    // Activate teacher
+    const updatedTeacher = await prisma.teacher.update({
+      where: { email },
+      data: { isActive: true, otp: null, otpExpiry: null }
+    });
+
+    const token = jwt.sign(
+      { id: updatedTeacher.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Registration successful. Account activated.",
+      token,
+      teacher: {
+        _id: updatedTeacher.id,
+        name: updatedTeacher.name,
+        email: updatedTeacher.email,
+        department: updatedTeacher.department,
+        employeeId: updatedTeacher.employeeId,
+      },
+    });
+
+  } catch (error) {
+    console.log("VERIFY REGISTRATION ERROR:", error);
+    res.status(500).json({ success: false, message: "Verification failed." });
   }
 });
 
@@ -90,6 +163,14 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
+      });
+    }
+
+    if (!teacher.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Account not activated. Please register to receive an OTP.",
+        notActive: true
       });
     }
 
@@ -132,26 +213,64 @@ router.post("/login", async (req, res) => {
 });
 
 // ============================
+// FORGOT PASSWORD
+// ============================
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required." });
+    }
+
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
+
+    if (!teacher || !teacher.isActive) {
+      return res.status(404).json({ success: false, message: "Active account not found with this email." });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    await prisma.teacher.update({
+      where: { email },
+      data: { otp, otpExpiry }
+    });
+
+    const emailSent = await sendOTP(email, otp);
+    if (!emailSent) {
+      return res.status(500).json({ success: false, message: "Failed to send OTP." });
+    }
+
+    res.status(200).json({ success: true, message: "OTP sent to your email." });
+  } catch (error) {
+    console.log("FORGOT PASSWORD ERROR:", error);
+    res.status(500).json({ success: false, message: "Request failed." });
+  }
+});
+
+// ============================
 // RESET PASSWORD
 // ============================
 router.post("/reset-password", async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email, otp, newPassword } = req.body;
 
-    if (!email || !newPassword) {
+    if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: "Email and new password are required.",
+        message: "Email, OTP, and new password are required.",
       });
     }
 
     const teacher = await prisma.teacher.findUnique({ where: { email } });
 
     if (!teacher) {
-      return res.status(404).json({
-        success: false,
-        message: "No account found with this email.",
-      });
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    if (teacher.otp !== otp || new Date() > new Date(teacher.otpExpiry)) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -159,7 +278,7 @@ router.post("/reset-password", async (req, res) => {
 
     await prisma.teacher.update({
       where: { email },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, otp: null, otpExpiry: null },
     });
 
     res.status(200).json({

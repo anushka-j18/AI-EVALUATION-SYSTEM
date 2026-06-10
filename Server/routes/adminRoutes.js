@@ -8,6 +8,11 @@ import { Readable } from "stream";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+const generateFacultyId = () => {
+  const randomChars = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `FAC-${randomChars}`;
+};
+
 // GET total stats for Admin Dashboard
 router.get("/stats", protectAdmin, async (req, res) => {
   try {
@@ -76,12 +81,14 @@ router.post("/teachers", protectAdmin, async (req, res) => {
     const existing = await prisma.teacher.findUnique({ where: { email } });
     if (existing) return res.status(400).json({ message: "Teacher with this email already exists." });
 
+    const finalEmployeeId = employeeId || generateFacultyId();
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const teacher = await prisma.teacher.create({
       data: {
-        name, email, password: hashedPassword, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode
+        name, email, password: hashedPassword, department, employeeId: finalEmployeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode, isActive: true
       }
     });
 
@@ -101,7 +108,7 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
   const stream = Readable.from(req.file.buffer);
   
   stream
-    .pipe(csvParser())
+    .pipe(csvParser({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
     .on("data", (data) => results.push(data))
     .on("end", async () => {
       let successCount = 0;
@@ -123,8 +130,7 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
             continue;
           }
 
-          const randomChars = Math.random().toString(36).substring(2, 7).toUpperCase();
-          const employeeId = `FAC-${randomChars}`;
+          const finalEmployeeId = row.employeeid || row['employee id'] || generateFacultyId();
 
           await prisma.teacher.create({
             data: {
@@ -132,11 +138,12 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
               email: row.email,
               password: defaultPassword,
               department: row.department || "",
-              employeeId: employeeId,
+              employeeId: finalEmployeeId,
               phone: row.phone || "",
-              collegeName: row.collegeName || "",
+              collegeName: row.collegename || row['college name'] || "",
               designation: row.designation || "",
-              subjectCode: row.subjectCode || "",
+              subjectCode: row.subjectcode || row['subject code'] || "",
+              isActive: true,
             }
           });
           successCount++;

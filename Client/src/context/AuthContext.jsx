@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
+        notActive: error.response?.data?.notActive,
         message: error.response?.data?.message || "Login failed",
       };
     }
@@ -46,10 +47,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (data) => {
     try {
       const res = await api.post("/auth/register", data);
-      localStorage.setItem("token", res.data.token);
-      setToken(res.data.token);
-      setTeacher(res.data.teacher);
-      return { success: true };
+      return { success: true, message: res.data.message };
     } catch (error) {
       return {
         success: false,
@@ -57,6 +55,45 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+
+  const verifyRegistration = async (email, otp) => {
+    try {
+      const res = await api.post("/auth/verify-registration", { email, otp });
+      localStorage.setItem("token", res.data.token);
+      setToken(res.data.token);
+      setTeacher(res.data.teacher);
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Verification failed",
+      };
+    }
+  }
+
+  const forgotPassword = async (email) => {
+    try {
+      const res = await api.post("/auth/forgot-password", { email });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to send reset OTP",
+      };
+    }
+  }
+
+  const resetPassword = async (email, otp, newPassword) => {
+    try {
+      const res = await api.post("/auth/reset-password", { email, otp, newPassword });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Password reset failed",
+      };
+    }
+  }
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -66,7 +103,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ teacher, loading, token, login, register, logout, setTeacher }}
+      value={{ teacher, loading, token, login, register, verifyRegistration, forgotPassword, resetPassword, logout, setTeacher }}
     >
       {children}
     </AuthContext.Provider>

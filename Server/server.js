@@ -17,6 +17,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import "./services/cronService.js";
 
 dotenv.config();
 

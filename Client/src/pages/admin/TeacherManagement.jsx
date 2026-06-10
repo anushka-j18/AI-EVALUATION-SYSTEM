@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, X, Loader2, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Loader2, Upload, Download } from 'lucide-react';
 import api from '../../api/axiosConfig';
 
 const TeacherManagement = () => {
@@ -34,6 +34,17 @@ const TeacherManagement = () => {
   useEffect(() => {
     fetchTeachers();
   }, []);
+
+  const downloadTemplate = () => {
+    const csvContent = "data:text/csv;charset=utf-8,name,email,department,phone,collegeName,designation,subjectCode\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "teacher_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];

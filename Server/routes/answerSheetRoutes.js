@@ -197,7 +197,8 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
     const teacherId = req.teacher.id || req.teacher._id;
 
     const answerSheet = await prisma.answerSheet.findUnique({
-      where: { id: answerSheetId }
+      where: { id: answerSheetId },
+      include: { questionPaper: true }
     });
 
     if (!answerSheet) {
@@ -211,6 +212,25 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "This script is no longer available.",
+      });
+    }
+
+    // Validate subject code match
+    const assignedCodes = req.teacher.subjectCode
+      ? req.teacher.subjectCode.split(',').map(c => c.trim()).filter(Boolean)
+      : [];
+
+    if (assignedCodes.length > 0 && answerSheet.questionPaper) {
+      if (!assignedCodes.includes(answerSheet.questionPaper.subjectCode)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to claim this script (Subject Code mismatch).",
+        });
+      }
+    } else if (assignedCodes.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not assigned to any subject codes.",
       });
     }
 

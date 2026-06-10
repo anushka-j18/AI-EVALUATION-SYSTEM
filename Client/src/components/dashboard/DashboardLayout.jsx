@@ -14,7 +14,6 @@ const DashboardLayout = () => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === "/dashboard") return "Dashboard Overview";
-    if (path.includes("ai-evaluation")) return "AI Evaluation";
     if (path.includes("digital-evaluation")) return "Digital Evaluation";
     if (path.includes("assigned")) return "Assigned Evaluations";
     if (path.includes("available-scripts")) return "Available Scripts";

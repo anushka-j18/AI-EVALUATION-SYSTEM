@@ -41,7 +41,7 @@ const Login = () => {
 
     try {
       if (mode === "login") {
-        if (email === "admin@gmail.com" && password === "admin@123") {
+        if (email === "admin@gmail.com") {
           const result = await adminLogin(email, password);
           if (result.success) navigate("/admin");
           else setError(result.message);

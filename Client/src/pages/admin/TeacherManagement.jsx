@@ -9,6 +9,7 @@ const TeacherManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [generatedCredentials, setGeneratedCredentials] = useState([]);
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -63,6 +64,9 @@ const TeacherManagement = () => {
         }
       });
       alert(res.data.message);
+      if (res.data.createdTeachers && res.data.createdTeachers.length > 0) {
+        setGeneratedCredentials(res.data.createdTeachers);
+      }
       fetchTeachers();
     } catch (err) {
       console.error(err);
@@ -71,6 +75,22 @@ const TeacherManagement = () => {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const downloadCredentials = () => {
+    if (generatedCredentials.length === 0) return;
+    const csvRows = ["Teacher Name,Email,Password"];
+    generatedCredentials.forEach(cred => {
+      csvRows.push(`${cred.name},${cred.email},${cred.password}`);
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "generated_credentials.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleInputChange = (e) => {
@@ -120,13 +140,11 @@ const TeacherManagement = () => {
         await api.put(`/admin/teachers/${editingId}`, formData, config);
         alert('Teacher updated successfully');
       } else {
-        if (!formData.password) {
-          alert("Password is required for new teachers");
-          setIsSubmitting(false);
-          return;
-        }
-        await api.post('/admin/teachers', formData, config);
+        const res = await api.post('/admin/teachers', formData, config);
         alert('Teacher created successfully');
+        if (res.data.rawPassword) {
+          setGeneratedCredentials([{ name: formData.name, email: formData.email, password: res.data.rawPassword }]);
+        }
       }
       closeModal();
       fetchTeachers();
@@ -164,6 +182,14 @@ const TeacherManagement = () => {
           <p className="text-gray-400 mt-1">Manage all teachers and their details</p>
         </div>
         <div className="flex gap-4">
+          {generatedCredentials.length > 0 && (
+            <button 
+              onClick={downloadCredentials}
+              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Download size={20} /> Download Credentials
+            </button>
+          )}
           <input 
             type="file" 
             accept=".csv" 
@@ -260,10 +286,12 @@ const TeacherManagement = () => {
                       <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
                       <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" />
                     </div>
+                    {editingId && (
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Password {editingId && '(Leave blank to keep unchanged)'}</label>
-                      <input type="password" name="password" value={formData.password} onChange={handleInputChange} required={!editingId} minLength={6} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" />
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Password (Leave blank to keep unchanged)</label>
+                      <input type="password" name="password" value={formData.password} onChange={handleInputChange} minLength={6} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" />
                     </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-1">Phone</label>
                       <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none" />

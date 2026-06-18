@@ -76,15 +76,18 @@ import bcrypt from "bcryptjs";
 // POST create new teacher
 router.post("/teachers", protectAdmin, async (req, res) => {
   try {
-    const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
+    const { name, email, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
     
     const existing = await prisma.teacher.findUnique({ where: { email } });
     if (existing) return res.status(400).json({ message: "Teacher with this email already exists." });
 
     const finalEmployeeId = employeeId || generateFacultyId();
 
+    const username = email.split("@")[0];
+    const rawPassword = `${username}@123`;
+
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(rawPassword, salt);
 
     const teacher = await prisma.teacher.create({
       data: {
@@ -92,7 +95,11 @@ router.post("/teachers", protectAdmin, async (req, res) => {
       }
     });
 
-    res.status(201).json({ message: "Teacher created successfully.", teacher: { ...teacher, _id: teacher.id } });
+    res.status(201).json({ 
+      message: "Teacher created successfully.", 
+      teacher: { ...teacher, _id: teacher.id },
+      rawPassword 
+    });
   } catch (error) {
     console.error("Create Teacher Error:", error);
     res.status(500).json({ message: "Failed to create teacher" });
@@ -113,9 +120,10 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
     .on("end", async () => {
       let successCount = 0;
       let failedCount = 0;
+      let duplicateCount = 0;
+      const createdTeachers = [];
       
       const salt = await bcrypt.genSalt(10);
-      const defaultPassword = await bcrypt.hash("welcome123", salt);
 
       for (const row of results) {
         try {
@@ -126,17 +134,21 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
 
           const existing = await prisma.teacher.findUnique({ where: { email: row.email } });
           if (existing) {
-            failedCount++;
+            duplicateCount++;
             continue;
           }
 
           const finalEmployeeId = row.employeeid || row['employee id'] || generateFacultyId();
 
+          const username = row.email.split("@")[0];
+          const rawPassword = `${username}@123`;
+          const hashedPassword = await bcrypt.hash(rawPassword, salt);
+
           await prisma.teacher.create({
             data: {
               name: row.name,
               email: row.email,
-              password: defaultPassword,
+              password: hashedPassword,
               department: row.department || "",
               employeeId: finalEmployeeId,
               phone: row.phone || "",
@@ -146,6 +158,13 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
               isActive: true,
             }
           });
+          
+          createdTeachers.push({
+            name: row.name,
+            email: row.email,
+            password: rawPassword
+          });
+          
           successCount++;
         } catch (err) {
           console.error("Row import error", err);
@@ -153,7 +172,11 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
         }
       }
       
-      res.json({ message: `Import complete. Success: ${successCount}, Failed: ${failedCount}` });
+      res.json({ 
+        message: `Import complete. Total Records: ${results.length}, Successfully Created: ${successCount}, Failed Records: ${failedCount}, Duplicate Records: ${duplicateCount}`,
+        stats: { successCount, failedCount, duplicateCount, total: results.length },
+        createdTeachers
+      });
     });
 });
 
@@ -263,6 +286,40 @@ router.post("/assign-script", protectAdmin, async (req, res) => {
   } catch (error) {
     console.error("Admin Assign Script Error:", error);
     res.status(500).json({ message: "Failed to assign script" });
+  }
+});
+
+// POST bulk assign answer scripts to a teacher
+router.post("/assign-scripts-bulk", protectAdmin, async (req, res) => {
+  try {
+    const { scriptIds, teacherId } = req.body;
+
+    if (!Array.isArray(scriptIds) || scriptIds.length === 0 || !teacherId) {
+      return res.status(400).json({ message: "An array of scriptIds and a teacherId are required" });
+    }
+
+    const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    // Assign all scripts in bulk
+    const updateResult = await prisma.answerSheet.updateMany({
+      where: {
+        id: { in: scriptIds },
+        status: "available" // Only assign if they are currently available
+      },
+      data: {
+        assignedToId: teacherId,
+        status: "assigned",
+        assignedAt: new Date()
+      }
+    });
+
+    res.json({ message: `Successfully assigned ${updateResult.count} scripts.`, count: updateResult.count });
+  } catch (error) {
+    console.error("Admin Bulk Assign Scripts Error:", error);
+    res.status(500).json({ message: "Failed to bulk assign scripts" });
   }
 });
 

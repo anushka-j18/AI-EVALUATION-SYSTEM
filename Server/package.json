@@ -12,8 +12,9 @@
   "type": "module",
   "dependencies": {
     "@google/genai": "^2.7.0",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@libsql/client": "^0.17.4",
+    "@prisma/adapter-libsql": "^7.8.0",
+    "@prisma/client": "5.21.1",
     "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -29,6 +30,6 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
-    "prisma": "^7.8.0"
+    "prisma": "5.21.1"
   }
 }

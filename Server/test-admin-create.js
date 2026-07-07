@@ -22,7 +22,7 @@ const request = (path, method, body, token) => {
 
 async function test() {
   console.log("1. Logging in as Admin...");
-  const adminLogin = await request('/api/admin/auth/login', 'POST', { email: 'admin@gmail.com', password: 'admin@1234' });
+  const adminLogin = await request('/api/admin/auth/login', 'POST', { email: 'admin@gmail.com', password: 'admin@123' });
   console.log("Admin Login Status:", adminLogin.status);
   const adminToken = adminLogin.data.token;
   if (!adminToken) return console.log("Failed to get admin token!");

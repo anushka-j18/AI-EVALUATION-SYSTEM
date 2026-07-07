@@ -30,7 +30,7 @@ const login = (path, email, password) => {
 
 async function test() {
   console.log("Testing Admin Login...");
-  const adminRes = await login('/api/admin/auth/login', 'admin@gmail.com', 'admin@1234');
+  const adminRes = await login('/api/admin/auth/login', 'admin@gmail.com', 'admin@123');
   console.log('Admin Status:', adminRes.statusCode);
   console.log('Admin Body:', adminRes.body);
 

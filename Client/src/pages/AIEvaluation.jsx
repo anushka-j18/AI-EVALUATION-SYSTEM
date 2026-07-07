@@ -48,13 +48,7 @@ function AIEvaluation() {
   // FETCH QUESTION PAPERS
   // ============================
 
-  useEffect(() => {
-
-    fetchQuestionPapers();
-
-  }, []);
-
-  const fetchQuestionPapers =
+const fetchQuestionPapers =
     async () => {
 
       try {
@@ -74,6 +68,14 @@ function AIEvaluation() {
         console.log(error);
       }
     };
+
+  useEffect(() => {
+
+    fetchQuestionPapers();
+
+  }, []);
+
+  
 
   // ============================
   // FETCH QUESTIONS

@@ -16,11 +16,7 @@ const AssignScripts = () => {
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     try {
       const [scriptsRes, teachersRes] = await Promise.all([
@@ -35,6 +31,12 @@ const AssignScripts = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  
 
   // Group scripts by Subject Code
   const subjectsData = useMemo(() => {

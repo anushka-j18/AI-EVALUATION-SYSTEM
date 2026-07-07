@@ -36,22 +36,7 @@ const DigitalEvaluation = () => {
   
   const containerRef = useRef(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [answerSheetId]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [loading, error]);
-
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     setError("");
     try {
@@ -72,6 +57,23 @@ const DigitalEvaluation = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [answerSheetId]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [loading, error]);
+
+  
 
   const calculateTotalMarks = (marksList) => {
     const groups = {};

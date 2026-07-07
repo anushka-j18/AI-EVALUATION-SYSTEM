@@ -10,11 +10,7 @@ const PendingScripts = () => {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchScripts();
-  }, []);
-
-  const fetchScripts = async () => {
+const fetchScripts = async () => {
     try {
       const res = await api.get("/answer-sheets/pending");
       setScripts(res.data.scripts);
@@ -24,6 +20,12 @@ const PendingScripts = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchScripts();
+  }, []);
+
+  
 
   const handleResume = (script) => {
     navigate(`/dashboard/digital-evaluation/${script._id}`);

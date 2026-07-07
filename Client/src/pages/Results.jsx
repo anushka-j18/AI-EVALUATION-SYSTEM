@@ -7,11 +7,7 @@ function Results() {
   const [results, setResults] =
     useState([]);
 
-  useEffect(() => {
-    fetchResults();
-  }, []);
-
-  const fetchResults =
+const fetchResults =
     async () => {
 
       try {
@@ -28,6 +24,12 @@ function Results() {
         console.log(error);
       }
     };
+
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
+  
 
   return (
 

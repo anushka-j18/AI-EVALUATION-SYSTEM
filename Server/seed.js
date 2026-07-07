@@ -5,10 +5,10 @@ async function main() {
   const salt = await bcrypt.genSalt(10);
   
   // Seed admin
-  const adminPassword = await bcrypt.hash('admin@1234', salt);
+  const adminPassword = await bcrypt.hash('admin@123', salt);
   await prisma.admin.upsert({
     where: { email: 'admin@gmail.com' },
-    update: {},
+    update: { password: adminPassword },
     create: {
       name: 'System Admin',
       email: 'admin@gmail.com',

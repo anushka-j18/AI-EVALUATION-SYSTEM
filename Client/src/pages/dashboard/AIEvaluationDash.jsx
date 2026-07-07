@@ -9,11 +9,7 @@ const AIEvaluationDash = () => {
   const [comparison, setComparison] = useState(null);
   const [loadingCompare, setLoadingCompare] = useState(false);
 
-  useEffect(() => {
-    fetchEvaluations();
-  }, []);
-
-  const fetchEvaluations = async () => {
+const fetchEvaluations = async () => {
     try {
       // Get all evaluations that have an aiEvaluationId
       const res = await api.get("/dashboard/recent-activities");
@@ -25,6 +21,12 @@ const AIEvaluationDash = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEvaluations();
+  }, []);
+
+  
 
   const handleSelect = async (evalId) => {
     setSelectedEval(evalId);

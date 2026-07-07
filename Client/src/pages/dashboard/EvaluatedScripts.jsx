@@ -10,11 +10,7 @@ const EvaluatedScripts = () => {
   const [evaluationDetails, setEvaluationDetails] = useState({});
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  useEffect(() => {
-    fetchScripts();
-  }, []);
-
-  const fetchScripts = async () => {
+const fetchScripts = async () => {
     try {
       const res = await api.get("/answer-sheets/evaluated");
       setScripts(res.data.scripts);
@@ -24,6 +20,12 @@ const EvaluatedScripts = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchScripts();
+  }, []);
+
+  
 
   const toggleExpand = async (scriptId) => {
     if (expandedId === scriptId) {

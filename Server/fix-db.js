@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 async function fixDB() {
   try {
     const salt = await bcrypt.genSalt(10);
-    const adminPassword = await bcrypt.hash('admin@1234', salt);
+    const adminPassword = await bcrypt.hash('admin@123', salt);
     const teacherPassword = await bcrypt.hash('teacher@1234', salt);
 
     await prisma.admin.upsert({

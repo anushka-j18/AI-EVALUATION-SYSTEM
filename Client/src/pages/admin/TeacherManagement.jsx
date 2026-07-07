@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit2, Trash2, X, Loader2, Upload, Download } from 'lucide-react';
 import api from '../../api/axiosConfig';

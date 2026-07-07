@@ -10,11 +10,7 @@ const SubjectResultDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchDetails();
-  }, [questionPaperId]);
-
-  const fetchDetails = async () => {
+const fetchDetails = async () => {
     try {
       const res = await api.get(`/dashboard/subject-results/${questionPaperId}`);
       const evals = res.data.evaluations || [];
@@ -29,6 +25,12 @@ const SubjectResultDetails = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDetails();
+  }, [questionPaperId]);
+
+  
 
   if (loading) {
     return (

@@ -11,11 +11,7 @@ const AssignedEvaluations = () => {
   const [startingId, setStartingId] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchScripts();
-  }, []);
-
-  const fetchScripts = async () => {
+const fetchScripts = async () => {
     try {
       const res = await api.get("/answer-sheets/assigned");
       setScripts(res.data.scripts);
@@ -25,6 +21,12 @@ const AssignedEvaluations = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchScripts();
+  }, []);
+
+  
 
   const handleStartEvaluation = async (script) => {
     setStartingId(script._id);

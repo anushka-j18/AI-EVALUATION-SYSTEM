@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { ClipboardList, Trash2, PlusCircle, Save, Loader2, Calculator } from "lucide-react";

@@ -8,11 +8,7 @@ const SubjectResultsList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
-  const fetchSubjects = async () => {
+const fetchSubjects = async () => {
     try {
       const res = await api.get("/dashboard/subject-results");
       setSubjects(res.data.subjects || []);
@@ -23,6 +19,12 @@ const SubjectResultsList = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  
 
   if (loading) {
     return (

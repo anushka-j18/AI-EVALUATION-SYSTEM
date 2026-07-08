@@ -140,19 +140,38 @@ function Dashboard() {
 
         </div>
 
-        <div
-          className="
-          bg-white/10
-          px-5
-          py-2
-          rounded-full
-          border
-          border-white/10
-          "
-        >
-          <p className="text-sm">
-            Grok AI Powered
-          </p>
+        <div className="flex items-center gap-4">
+          <div
+            className="
+            bg-white/10
+            px-5
+            py-2
+            rounded-full
+            border
+            border-white/10
+            hidden sm:block
+            "
+          >
+            <p className="text-sm">
+              Grok AI Powered
+            </p>
+          </div>
+          
+          <Link
+            to="/login"
+            className="
+            px-6
+            py-2
+            bg-white
+            text-slate-950
+            font-semibold
+            rounded-full
+            hover:bg-gray-200
+            transition-colors
+            "
+          >
+            Sign In
+          </Link>
         </div>
       </div>
 

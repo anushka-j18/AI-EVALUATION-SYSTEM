@@ -1,0 +1,14 @@
+{
+  "name": "digital-evaluation-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:client": "cd Client && npm run dev",
+    "dev:server": "cd Server && node server.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "install:all": "npm install && cd Client && npm install && cd ../Server && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

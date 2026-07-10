@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
+import { useAuth } from "../../context/AuthContext";
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const { teacher, loading } = useAuth();
+
+  if (loading) return <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-4">Loading Dashboard...</div>;
+  if (!teacher) return <Navigate to="/login" />;
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);

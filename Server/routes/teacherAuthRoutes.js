@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import prisma from "../prismaClient.js";
+import Teacher from "../models/Teacher.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { sendOTP } from "../services/emailService.js";
 
@@ -24,7 +24,7 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    let teacher = await prisma.teacher.findUnique({ where: { email } });
+    let teacher = await Teacher.findOne({ email });
 
     if (teacher) {
       if (teacher.isActive) {
@@ -42,23 +42,24 @@ router.post("/register", async (req, res) => {
 
     if (teacher) {
       // Update inactive teacher
-      teacher = await prisma.teacher.update({
-        where: { email },
-        data: { name, password: hashedPassword, department: department || "", employeeId: employeeId || "", otp, otpExpiry }
-      });
+      teacher.name = name;
+      teacher.password = hashedPassword;
+      teacher.department = department || "";
+      teacher.employeeId = employeeId || "";
+      teacher.otp = otp;
+      teacher.otpExpiry = otpExpiry;
+      await teacher.save();
     } else {
       // Create new inactive teacher
-      teacher = await prisma.teacher.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          department: department || "",
-          employeeId: employeeId || "",
-          isActive: false,
-          otp,
-          otpExpiry
-        }
+      teacher = await Teacher.create({
+        name,
+        email,
+        password: hashedPassword,
+        department: department || "",
+        employeeId: employeeId || "",
+        isActive: false,
+        otp,
+        otpExpiry,
       });
     }
 
@@ -98,7 +99,7 @@ router.post("/verify-registration", async (req, res) => {
       });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    const teacher = await Teacher.findOne({ email });
 
     if (!teacher) {
       return res.status(404).json({ success: false, message: "Teacher not found." });
@@ -113,13 +114,13 @@ router.post("/verify-registration", async (req, res) => {
     }
 
     // Activate teacher
-    const updatedTeacher = await prisma.teacher.update({
-      where: { email },
-      data: { isActive: true, otp: null, otpExpiry: null }
-    });
+    teacher.isActive = true;
+    teacher.otp = null;
+    teacher.otpExpiry = null;
+    await teacher.save();
 
     const token = jwt.sign(
-      { id: updatedTeacher.id },
+      { id: teacher._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -129,11 +130,11 @@ router.post("/verify-registration", async (req, res) => {
       message: "Registration successful. Account activated.",
       token,
       teacher: {
-        _id: updatedTeacher.id,
-        name: updatedTeacher.name,
-        email: updatedTeacher.email,
-        department: updatedTeacher.department,
-        employeeId: updatedTeacher.employeeId,
+        _id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        department: teacher.department,
+        employeeId: teacher.employeeId,
       },
     });
 
@@ -157,7 +158,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    const teacher = await Teacher.findOne({ email });
 
     if (!teacher) {
       return res.status(401).json({
@@ -184,7 +185,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: teacher.id },
+      { id: teacher._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -194,7 +195,7 @@ router.post("/login", async (req, res) => {
       message: "Login successful.",
       token,
       teacher: {
-        _id: teacher.id,
+        _id: teacher._id,
         name: teacher.name,
         email: teacher.email,
         department: teacher.department,
@@ -223,7 +224,7 @@ router.post("/forgot-password", async (req, res) => {
       return res.status(400).json({ success: false, message: "Email is required." });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    const teacher = await Teacher.findOne({ email });
 
     if (!teacher || !teacher.isActive) {
       return res.status(404).json({ success: false, message: "Active account not found with this email." });
@@ -232,10 +233,9 @@ router.post("/forgot-password", async (req, res) => {
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    await prisma.teacher.update({
-      where: { email },
-      data: { otp, otpExpiry }
-    });
+    teacher.otp = otp;
+    teacher.otpExpiry = otpExpiry;
+    await teacher.save();
 
     const emailSent = await sendOTP(email, otp);
     if (!emailSent) {
@@ -263,7 +263,7 @@ router.post("/reset-password", async (req, res) => {
       });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    const teacher = await Teacher.findOne({ email });
 
     if (!teacher) {
       return res.status(404).json({ success: false, message: "Teacher not found." });
@@ -276,10 +276,10 @@ router.post("/reset-password", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    await prisma.teacher.update({
-      where: { email },
-      data: { password: hashedPassword, otp: null, otpExpiry: null },
-    });
+    teacher.password = hashedPassword;
+    teacher.otp = null;
+    teacher.otpExpiry = null;
+    await teacher.save();
 
     res.status(200).json({
       success: true,
@@ -319,28 +319,18 @@ router.get("/me", authMiddleware, async (req, res) => {
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     const { name, department, employeeId, phone } = req.body;
-    const teacherId = req.teacher.id || req.teacher._id;
+    const teacherId = req.teacher._id;
 
-    const updatedTeacher = await prisma.teacher.update({
-      where: { id: teacherId },
-      data: { name, department, employeeId, phone },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        department: true,
-        employeeId: true,
-        phone: true,
-        profileImage: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
+    const updatedTeacher = await Teacher.findByIdAndUpdate(
+      teacherId,
+      { name, department, employeeId, phone },
+      { new: true }
+    ).select("-password");
 
     res.status(200).json({
       success: true,
       message: "Profile updated successfully.",
-      teacher: { ...updatedTeacher, _id: updatedTeacher.id },
+      teacher: updatedTeacher,
     });
   } catch (error) {
     console.log("UPDATE PROFILE ERROR:", error);

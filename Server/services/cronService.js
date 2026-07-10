@@ -1,18 +1,15 @@
 import cron from 'node-cron';
-import prisma from '../prismaClient.js';
+import AnswerSheet from '../models/AnswerSheet.js';
 import { sendReminderEmail } from './emailService.js';
 
 // Run the job every day at 8:00 AM
 cron.schedule('0 8 * * *', async () => {
   console.log('Running daily cron job for pending evaluations...');
   try {
-    const pendingScripts = await prisma.answerSheet.findMany({
-      where: {
-        status: { in: ['assigned', 'pending'] },
-        assignedToId: { not: null },
-      },
-      include: { assignedTo: true },
-    });
+    const pendingScripts = await AnswerSheet.find({
+      status: { $in: ['assigned', 'pending'] },
+      assignedTo: { $ne: null },
+    }).populate('assignedTo');
 
     const currentDate = new Date();
     // Group pending scripts by teacher ID if they match the 5-day rule
@@ -28,7 +25,7 @@ cron.schedule('0 8 * * *', async () => {
 
       // Check if it's been exactly 5, 10, 15, etc. days
       if (diffDays > 0 && diffDays % 5 === 0) {
-        const tId = script.assignedToId;
+        const tId = script.assignedTo._id.toString();
         if (!teacherPendingCounts[tId]) {
           teacherPendingCounts[tId] = 0;
           teacherDetails[tId] = script.assignedTo;

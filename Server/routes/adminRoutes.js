@@ -1,6 +1,9 @@
 import express from "express";
+import bcrypt from "bcryptjs";
 import { protectAdmin } from "../middleware/authMiddleware.js";
-import prisma from "../prismaClient.js";
+import Teacher from "../models/Teacher.js";
+import AnswerSheet from "../models/AnswerSheet.js";
+import Evaluation from "../models/Evaluation.js";
 import multer from "multer";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
@@ -16,13 +19,13 @@ const generateFacultyId = () => {
 // GET total stats for Admin Dashboard
 router.get("/stats", protectAdmin, async (req, res) => {
   try {
-    const totalTeachers = await prisma.teacher.count();
-    const totalScripts = await prisma.answerSheet.count();
+    const totalTeachers = await Teacher.countDocuments();
+    const totalScripts = await AnswerSheet.countDocuments();
     
-    const availableScripts = await prisma.answerSheet.count({ where: { status: "available" } });
-    const assignedScripts = await prisma.answerSheet.count({ where: { status: "assigned" } });
-    const pendingScripts = await prisma.answerSheet.count({ where: { status: "pending" } });
-    const evaluatedScripts = await prisma.answerSheet.count({ where: { status: "evaluated" } });
+    const availableScripts = await AnswerSheet.countDocuments({ status: "available" });
+    const assignedScripts = await AnswerSheet.countDocuments({ status: "assigned" });
+    const pendingScripts = await AnswerSheet.countDocuments({ status: "pending" });
+    const evaluatedScripts = await AnswerSheet.countDocuments({ status: "evaluated" });
 
     res.json({
       stats: {
@@ -43,27 +46,9 @@ router.get("/stats", protectAdmin, async (req, res) => {
 // GET all teachers
 router.get("/teachers", protectAdmin, async (req, res) => {
   try {
-    const teachersRaw = await prisma.teacher.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        department: true,
-        employeeId: true,
-        phone: true,
-        profileImage: true,
-        collegeName: true,
-        designation: true,
-        accountNumber: true,
-        ifscCode: true,
-        panel: true,
-        subjectCode: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-    const teachers = teachersRaw.map(t => ({ ...t, _id: t.id }));
+    const teachers = await Teacher.find()
+      .select("-password")
+      .sort({ createdAt: -1 });
     res.json({ teachers });
   } catch (error) {
     console.error("Fetch Teachers Error:", error);
@@ -71,14 +56,12 @@ router.get("/teachers", protectAdmin, async (req, res) => {
   }
 });
 
-import bcrypt from "bcryptjs";
-
 // POST create new teacher
 router.post("/teachers", protectAdmin, async (req, res) => {
   try {
     const { name, email, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
     
-    const existing = await prisma.teacher.findUnique({ where: { email } });
+    const existing = await Teacher.findOne({ email });
     if (existing) return res.status(400).json({ message: "Teacher with this email already exists." });
 
     const finalEmployeeId = employeeId || generateFacultyId();
@@ -89,15 +72,13 @@ router.post("/teachers", protectAdmin, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(rawPassword, salt);
 
-    const teacher = await prisma.teacher.create({
-      data: {
-        name, email, password: hashedPassword, department, employeeId: finalEmployeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode, isActive: true
-      }
+    const teacher = await Teacher.create({
+      name, email, password: hashedPassword, department, employeeId: finalEmployeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode, isActive: true
     });
 
     res.status(201).json({ 
       message: "Teacher created successfully.", 
-      teacher: { ...teacher, _id: teacher.id },
+      teacher,
       rawPassword 
     });
   } catch (error) {
@@ -132,7 +113,7 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
             continue;
           }
 
-          const existing = await prisma.teacher.findUnique({ where: { email: row.email } });
+          const existing = await Teacher.findOne({ email: row.email });
           if (existing) {
             duplicateCount++;
             continue;
@@ -144,19 +125,17 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
           const rawPassword = `${username}@123`;
           const hashedPassword = await bcrypt.hash(rawPassword, salt);
 
-          await prisma.teacher.create({
-            data: {
-              name: row.name,
-              email: row.email,
-              password: hashedPassword,
-              department: row.department || "",
-              employeeId: finalEmployeeId,
-              phone: row.phone || "",
-              collegeName: row.collegename || row['college name'] || "",
-              designation: row.designation || "",
-              subjectCode: row.subjectcode || row['subject code'] || "",
-              isActive: true,
-            }
+          await Teacher.create({
+            name: row.name,
+            email: row.email,
+            password: hashedPassword,
+            department: row.department || "",
+            employeeId: finalEmployeeId,
+            phone: row.phone || "",
+            collegeName: row.collegename || row['college name'] || "",
+            designation: row.designation || "",
+            subjectCode: row.subjectcode || row['subject code'] || "",
+            isActive: true,
           });
           
           createdTeachers.push({
@@ -186,7 +165,7 @@ router.put("/teachers/:id", protectAdmin, async (req, res) => {
     const { id } = req.params;
     const { name, email, password, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode } = req.body;
 
-    const existing = await prisma.teacher.findUnique({ where: { id } });
+    const existing = await Teacher.findById(id);
     if (!existing) return res.status(404).json({ message: "Teacher not found." });
 
     let updateData = { name, email, department, employeeId, phone, collegeName, designation, accountNumber, ifscCode, panel, subjectCode };
@@ -196,12 +175,9 @@ router.put("/teachers/:id", protectAdmin, async (req, res) => {
       updateData.password = await bcrypt.hash(password, salt);
     }
 
-    const teacher = await prisma.teacher.update({
-      where: { id },
-      data: updateData
-    });
+    const teacher = await Teacher.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
 
-    res.json({ message: "Teacher updated successfully.", teacher: { ...teacher, _id: teacher.id } });
+    res.json({ message: "Teacher updated successfully.", teacher });
   } catch (error) {
     console.error("Update Teacher Error:", error);
     res.status(500).json({ message: "Failed to update teacher" });
@@ -212,7 +188,7 @@ router.put("/teachers/:id", protectAdmin, async (req, res) => {
 router.delete("/teachers/:id", protectAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.teacher.delete({ where: { id } });
+    await Teacher.findByIdAndDelete(id);
     res.json({ message: "Teacher deleted successfully." });
   } catch (error) {
     console.error("Delete Teacher Error:", error);
@@ -223,25 +199,10 @@ router.delete("/teachers/:id", protectAdmin, async (req, res) => {
 // GET all answer sheets
 router.get("/answer-sheets", protectAdmin, async (req, res) => {
   try {
-    const scriptsRaw = await prisma.answerSheet.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        questionPaper: {
-          select: { subject: true, subjectCode: true, examName: true }
-        },
-        assignedTo: {
-          select: { name: true, email: true, department: true }
-        }
-      }
-    });
-    // Map for frontend compatibility
-    const scripts = scriptsRaw.map(s => {
-      const script = { ...s, _id: s.id };
-      if (script.assignedTo) {
-         script.teacherId = script.assignedTo;
-      }
-      return script;
-    });
+    const scripts = await AnswerSheet.find()
+      .populate("questionPaper", "subject subjectCode examName")
+      .populate("assignedTo", "name email department")
+      .sort({ createdAt: -1 });
     res.json({ scripts });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch scripts" });
@@ -257,12 +218,12 @@ router.post("/assign-script", protectAdmin, async (req, res) => {
       return res.status(400).json({ message: "scriptId and teacherId are required" });
     }
 
-    const script = await prisma.answerSheet.findUnique({ where: { id: scriptId } });
+    const script = await AnswerSheet.findById(scriptId);
     if (!script) {
       return res.status(404).json({ message: "Answer script not found" });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
+    const teacher = await Teacher.findById(teacherId);
     if (!teacher) {
       return res.status(404).json({ message: "Teacher not found" });
     }
@@ -273,16 +234,12 @@ router.post("/assign-script", protectAdmin, async (req, res) => {
       updatedStatus = "assigned";
     }
 
-    const updatedScript = await prisma.answerSheet.update({
-      where: { id: scriptId },
-      data: {
-        assignedToId: teacherId,
-        status: updatedStatus,
-        assignedAt: new Date()
-      }
-    });
+    script.assignedTo = teacherId;
+    script.status = updatedStatus;
+    script.assignedAt = new Date();
+    await script.save();
 
-    res.json({ message: "Script assigned successfully", script: { ...updatedScript, _id: updatedScript.id } });
+    res.json({ message: "Script assigned successfully", script });
   } catch (error) {
     console.error("Admin Assign Script Error:", error);
     res.status(500).json({ message: "Failed to assign script" });
@@ -298,25 +255,27 @@ router.post("/assign-scripts-bulk", protectAdmin, async (req, res) => {
       return res.status(400).json({ message: "An array of scriptIds and a teacherId are required" });
     }
 
-    const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
+    const teacher = await Teacher.findById(teacherId);
     if (!teacher) {
       return res.status(404).json({ message: "Teacher not found" });
     }
 
     // Assign all scripts in bulk
-    const updateResult = await prisma.answerSheet.updateMany({
-      where: {
-        id: { in: scriptIds },
-        status: "available" // Only assign if they are currently available
+    const updateResult = await AnswerSheet.updateMany(
+      {
+        _id: { $in: scriptIds },
+        status: "available"
       },
-      data: {
-        assignedToId: teacherId,
-        status: "assigned",
-        assignedAt: new Date()
+      {
+        $set: {
+          assignedTo: teacherId,
+          status: "assigned",
+          assignedAt: new Date()
+        }
       }
-    });
+    );
 
-    res.json({ message: `Successfully assigned ${updateResult.count} scripts.`, count: updateResult.count });
+    res.json({ message: `Successfully assigned ${updateResult.modifiedCount} scripts.`, count: updateResult.modifiedCount });
   } catch (error) {
     console.error("Admin Bulk Assign Scripts Error:", error);
     res.status(500).json({ message: "Failed to bulk assign scripts" });
@@ -326,19 +285,21 @@ router.post("/assign-scripts-bulk", protectAdmin, async (req, res) => {
 // GET /api/admin/subject-results
 router.get("/subject-results", protectAdmin, async (req, res) => {
   try {
-    const evaluations = await prisma.evaluation.findMany({
-      where: { status: "submitted" },
-      include: { answerSheet: { include: { questionPaper: true } } }
-    });
+    const evaluations = await Evaluation.find({ status: "submitted" })
+      .populate({
+        path: "answerSheetId",
+        populate: { path: "questionPaper" }
+      });
     
     const subjectsMap = {};
     evaluations.forEach(evalRecord => {
-      const qp = evalRecord.answerSheet?.questionPaper;
+      const qp = evalRecord.answerSheetId?.questionPaper;
       if (qp) {
-        if (!subjectsMap[qp.id]) {
-          subjectsMap[qp.id] = { ...qp, totalEvaluated: 0 };
+        const qpId = qp._id.toString();
+        if (!subjectsMap[qpId]) {
+          subjectsMap[qpId] = { ...qp.toObject(), totalEvaluated: 0 };
         }
-        subjectsMap[qp.id].totalEvaluated++;
+        subjectsMap[qpId].totalEvaluated++;
       }
     });
 
@@ -353,15 +314,20 @@ router.get("/subject-results", protectAdmin, async (req, res) => {
 router.get("/subject-results/:questionPaperId", protectAdmin, async (req, res) => {
   try {
     const { questionPaperId } = req.params;
-    const evaluationsRaw = await prisma.evaluation.findMany({
-      where: { 
-        status: "submitted",
-        answerSheet: { questionPaperId }
-      },
-      include: { answerSheet: { include: { questionPaper: true } }, teacher: { select: { name: true, department: true } } }
-    });
+    
+    // First find answer sheets for this question paper
+    const answerSheetIds = await AnswerSheet.find({ questionPaper: questionPaperId }).distinct("_id");
+    
+    const evaluations = await Evaluation.find({
+      status: "submitted",
+      answerSheetId: { $in: answerSheetIds }
+    })
+    .populate({
+      path: "answerSheetId",
+      populate: { path: "questionPaper" }
+    })
+    .populate("teacherId", "name department");
 
-    const evaluations = evaluationsRaw.map(e => ({ ...e, _id: e.id }));
     res.json({ success: true, evaluations });
   } catch (error) {
     console.error("Fetch Admin Subject Details Error:", error);

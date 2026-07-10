@@ -1,7 +1,9 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import prisma from "../prismaClient.js";
+import QuestionPaper from "../models/QuestionPaper.js";
+import Question from "../models/Question.js";
+import Evaluation from "../models/Evaluation.js";
 import { extractTextFromFile } from "../services/ocrService.js";
 import { parseAnswers } from "../services/answerParserService.js";
 import { evaluateAnswer } from "../services/grokService.js";
@@ -35,9 +37,7 @@ router.post("/auto-evaluate", upload.single("answerSheet"), async (req, res) => 
     const extractedText = await extractTextFromFile(req.file.path);
     console.log("OCR TEXT = ", extractedText);
 
-    const questionPaper = await prisma.questionPaper.findUnique({
-      where: { id: req.body.questionPaperId }
-    });
+    const questionPaper = await QuestionPaper.findById(req.body.questionPaperId);
 
     if (!questionPaper) {
       return res.status(404).json({
@@ -46,10 +46,9 @@ router.post("/auto-evaluate", upload.single("answerSheet"), async (req, res) => 
       });
     }
 
-    const questions = await prisma.question.findMany({
-      where: { questionPaperId: questionPaper.id },
-      orderBy: { createdAt: 'asc' },
-    });
+    const questions = await Question.find({
+      questionPaper: questionPaper._id,
+    }).sort({ createdAt: 1 });
 
     console.log("QUESTIONS = ", questions);
 
@@ -96,20 +95,18 @@ router.post("/auto-evaluate", upload.single("answerSheet"), async (req, res) => 
       totalMarks += awarded;
     }
 
-    const evaluation = await prisma.evaluation.create({
-      data: {
-        studentName: req.body.studentName,
-        rollNumber: req.body.rollNumber,
-        answerSheetUrl: req.file.path,
-        checkingMode,
-        marks: evaluations,
-        totalMarks,
-      }
+    const evaluation = await Evaluation.create({
+      studentName: req.body.studentName,
+      rollNumber: req.body.rollNumber,
+      answerSheet: req.file.path,
+      checkingMode,
+      marks: evaluations,
+      totalMarks,
     });
 
     res.status(200).json({
       success: true,
-      evaluation: { ...evaluation, _id: evaluation.id },
+      evaluation,
     });
   } catch (error) {
     console.log("AI EVALUATION ERROR = ", error);

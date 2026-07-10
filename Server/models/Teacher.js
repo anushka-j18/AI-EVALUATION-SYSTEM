@@ -9,6 +9,15 @@ const teacherSchema = new mongoose.Schema(
     employeeId: { type: String, default: "" },
     phone: { type: String, default: "" },
     profileImage: { type: String, default: "" },
+    collegeName: { type: String, default: "" },
+    designation: { type: String, default: "" },
+    accountNumber: { type: String, default: "" },
+    ifscCode: { type: String, default: "" },
+    panel: { type: String, default: "" },
+    subjectCode: { type: String, default: "" },
+    isActive: { type: Boolean, default: false },
+    otp: { type: String, default: null },
+    otpExpiry: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -1,5 +1,8 @@
 import express from "express";
-import prisma from "../prismaClient.js";
+import Evaluation from "../models/Evaluation.js";
+import AnswerSheet from "../models/AnswerSheet.js";
+import Question from "../models/Question.js";
+import AIEvaluation from "../models/AIEvaluation.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { extractTextFromFile } from "../services/ocrService.js";
 import { parseAnswers } from "../services/answerParserService.js";
@@ -12,10 +15,8 @@ const router = express.Router();
 // ============================
 router.post("/start/:answerSheetId", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const answerSheet = await prisma.answerSheet.findUnique({
-      where: { id: req.params.answerSheetId }
-    });
+    const teacherId = req.teacher._id;
+    const answerSheet = await AnswerSheet.findById(req.params.answerSheetId);
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -25,29 +26,26 @@ router.post("/start/:answerSheetId", authMiddleware, async (req, res) => {
     }
 
     // Check if evaluation already exists
-    const existingEval = await prisma.evaluation.findFirst({
-      where: {
-        answerSheetId: answerSheet.id,
-        teacherId: teacherId,
-      }
+    const existingEval = await Evaluation.findOne({
+      answerSheetId: answerSheet._id,
+      teacherId: teacherId,
     });
 
     if (existingEval) {
       return res.status(200).json({
         success: true,
         message: "Evaluation already exists.",
-        evaluation: { ...existingEval, _id: existingEval.id },
+        evaluation: existingEval,
       });
     }
 
     // Fetch questions
-    const questions = await prisma.question.findMany({
-      where: { questionPaperId: answerSheet.questionPaperId },
-      orderBy: { createdAt: "asc" }
-    });
+    const questions = await Question.find({
+      questionPaper: answerSheet.questionPaper,
+    }).sort({ createdAt: 1 });
 
     const questionWiseMarks = questions.map((q) => ({
-      questionId: q.id,
+      questionId: q._id,
       questionNo: q.qNo,
       maxMarks: q.maxMarks,
       section: q.section,
@@ -58,29 +56,25 @@ router.post("/start/:answerSheetId", authMiddleware, async (req, res) => {
       comment: "",
     }));
 
-    const evaluation = await prisma.evaluation.create({
-      data: {
-        teacherId,
-        answerSheetId: answerSheet.id,
-        studentName: answerSheet.studentName,
-        rollNumber: answerSheet.rollNumber,
-        answerSheetUrl: answerSheet.fileUrl,
-        status: "draft",
-        questionWiseMarks,
-        totalMarks: 0,
-      }
+    const evaluation = await Evaluation.create({
+      teacherId,
+      answerSheetId: answerSheet._id,
+      studentName: answerSheet.studentName,
+      rollNumber: answerSheet.rollNumber,
+      answerSheet: answerSheet.fileUrl,
+      status: "draft",
+      questionWiseMarks,
+      totalMarks: 0,
     });
 
     // Update answer sheet status
-    await prisma.answerSheet.update({
-      where: { id: answerSheet.id },
-      data: { status: "pending" }
-    });
+    answerSheet.status = "pending";
+    await answerSheet.save();
 
     res.status(201).json({
       success: true,
       message: "Evaluation started.",
-      evaluation: { ...evaluation, _id: evaluation.id },
+      evaluation,
     });
   } catch (error) {
     console.log("START EVALUATION ERROR:", error);
@@ -104,21 +98,22 @@ router.put("/:id/save-draft", authMiddleware, async (req, res) => {
       0
     );
 
-    const evaluation = await prisma.evaluation.update({
-      where: { id: req.params.id },
-      data: {
+    const evaluation = await Evaluation.findByIdAndUpdate(
+      req.params.id,
+      {
         questionWiseMarks,
         overallComments,
         annotations,
         totalMarks,
         status: "draft",
-      }
-    });
+      },
+      { new: true }
+    );
 
     res.status(200).json({
       success: true,
       message: "Draft saved successfully.",
-      evaluation: { ...evaluation, _id: evaluation.id },
+      evaluation,
     });
   } catch (error) {
     console.log("SAVE DRAFT ERROR:", error);
@@ -142,29 +137,29 @@ router.put("/:id/submit", authMiddleware, async (req, res) => {
       0
     );
 
-    const evaluation = await prisma.evaluation.update({
-      where: { id: req.params.id },
-      data: {
+    const evaluation = await Evaluation.findByIdAndUpdate(
+      req.params.id,
+      {
         questionWiseMarks,
         overallComments,
         annotations,
         totalMarks,
         status: "submitted",
         submittedAt: new Date(),
-      }
-    });
+      },
+      { new: true }
+    );
 
     if (evaluation.answerSheetId) {
-      await prisma.answerSheet.update({
-        where: { id: evaluation.answerSheetId },
-        data: { status: "evaluated" },
+      await AnswerSheet.findByIdAndUpdate(evaluation.answerSheetId, {
+        status: "evaluated",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Evaluation submitted successfully.",
-      evaluation: { ...evaluation, _id: evaluation.id },
+      evaluation,
     });
   } catch (error) {
     console.log("SUBMIT EVALUATION ERROR:", error);
@@ -181,15 +176,9 @@ router.put("/:id/submit", authMiddleware, async (req, res) => {
 // ============================
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const evaluation = await prisma.evaluation.findUnique({
-      where: { id: req.params.id },
-      include: {
-        answerSheet: true,
-        teacher: {
-          select: { id: true, name: true, email: true, department: true, employeeId: true }
-        }
-      }
-    });
+    const evaluation = await Evaluation.findById(req.params.id)
+      .populate("answerSheetId")
+      .populate("teacherId", "name email department employeeId");
 
     if (!evaluation) {
       return res.status(404).json({
@@ -198,16 +187,9 @@ router.get("/:id", authMiddleware, async (req, res) => {
       });
     }
 
-    const mapped = {
-        ...evaluation,
-        _id: evaluation.id,
-        answerSheetId: evaluation.answerSheet,
-        teacherId: evaluation.teacher
-    };
-
     res.status(200).json({
       success: true,
-      evaluation: mapped,
+      evaluation,
     });
   } catch (error) {
     console.log("GET EVALUATION ERROR:", error);
@@ -223,18 +205,11 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // ============================
 router.get("/by-sheet/:answerSheetId", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const evaluation = await prisma.evaluation.findFirst({
-      where: {
-        answerSheetId: req.params.answerSheetId,
-        teacherId: teacherId,
-      },
-      include: {
-        teacher: {
-          select: { id: true, name: true, employeeId: true }
-        }
-      }
-    });
+    const teacherId = req.teacher._id;
+    const evaluation = await Evaluation.findOne({
+      answerSheetId: req.params.answerSheetId,
+      teacherId: teacherId,
+    }).populate("teacherId", "name employeeId");
 
     if (!evaluation) {
       return res.status(404).json({
@@ -245,7 +220,7 @@ router.get("/by-sheet/:answerSheetId", authMiddleware, async (req, res) => {
 
     res.status(200).json({
       success: true,
-      evaluation: { ...evaluation, _id: evaluation.id },
+      evaluation,
     });
   } catch (error) {
     console.log("GET BY SHEET ERROR:", error);
@@ -261,10 +236,8 @@ router.get("/by-sheet/:answerSheetId", authMiddleware, async (req, res) => {
 // ============================
 router.post("/:answerSheetId/ai-evaluate", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const answerSheet = await prisma.answerSheet.findUnique({
-      where: { id: req.params.answerSheetId }
-    });
+    const teacherId = req.teacher._id;
+    const answerSheet = await AnswerSheet.findById(req.params.answerSheetId);
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -282,10 +255,9 @@ router.post("/:answerSheetId/ai-evaluate", authMiddleware, async (req, res) => {
     const extractedAnswers = parseAnswers(extractedText);
 
     // Fetch questions
-    const questions = await prisma.question.findMany({
-      where: { questionPaperId: answerSheet.questionPaperId },
-      orderBy: { createdAt: "asc" }
-    });
+    const questions = await Question.find({
+      questionPaper: answerSheet.questionPaper,
+    }).sort({ createdAt: 1 });
 
     if (!questions || questions.length === 0) {
       return res.status(404).json({
@@ -321,30 +293,28 @@ router.post("/:answerSheetId/ai-evaluate", authMiddleware, async (req, res) => {
     }
 
     // Save AI evaluation
-    const aiEvaluation = await prisma.aIEvaluation.create({
-      data: {
-        answerSheetId: answerSheet.id,
-        questionPaperId: answerSheet.questionPaperId,
-        teacherId,
-        checkingMode,
-        questionWiseResults,
-        totalAiMarks,
-      }
+    const aiEvaluation = await AIEvaluation.create({
+      answerSheetId: answerSheet._id,
+      questionPaperId: answerSheet.questionPaper,
+      teacherId,
+      checkingMode,
+      questionWiseResults,
+      totalAiMarks,
     });
 
     // Link to teacher evaluation if exists
-    await prisma.evaluation.updateMany({
-      where: {
-        answerSheetId: answerSheet.id,
+    await Evaluation.updateMany(
+      {
+        answerSheetId: answerSheet._id,
         teacherId: teacherId,
       },
-      data: { aiEvaluationId: aiEvaluation.id }
-    });
+      { aiEvaluationId: aiEvaluation._id }
+    );
 
     res.status(200).json({
       success: true,
       message: "AI evaluation completed.",
-      aiEvaluation: { ...aiEvaluation, _id: aiEvaluation.id },
+      aiEvaluation,
     });
   } catch (error) {
     console.log("AI EVALUATE ERROR:", error);
@@ -361,9 +331,7 @@ router.post("/:answerSheetId/ai-evaluate", authMiddleware, async (req, res) => {
 // ============================
 router.get("/:id/ai-comparison", authMiddleware, async (req, res) => {
   try {
-    const evaluation = await prisma.evaluation.findUnique({
-      where: { id: req.params.id }
-    });
+    const evaluation = await Evaluation.findById(req.params.id);
 
     if (!evaluation) {
       return res.status(404).json({
@@ -374,15 +342,13 @@ router.get("/:id/ai-comparison", authMiddleware, async (req, res) => {
 
     let aiEvaluation = null;
     if (evaluation.aiEvaluationId) {
-      aiEvaluation = await prisma.aIEvaluation.findUnique({
-        where: { id: evaluation.aiEvaluationId }
-      });
+      aiEvaluation = await AIEvaluation.findById(evaluation.aiEvaluationId);
     }
 
     res.status(200).json({
       success: true,
-      evaluation: { ...evaluation, _id: evaluation.id },
-      aiEvaluation: aiEvaluation ? { ...aiEvaluation, _id: aiEvaluation.id } : null,
+      evaluation,
+      aiEvaluation,
     });
   } catch (error) {
     console.log("AI COMPARISON ERROR:", error);

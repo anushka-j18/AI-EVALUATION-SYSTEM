@@ -1,7 +1,8 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import prisma from "../prismaClient.js";
+import AnswerSheet from "../models/AnswerSheet.js";
+import QuestionPaper from "../models/QuestionPaper.js";
 import authMiddleware, { protectAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -51,20 +52,18 @@ router.post(
         });
       }
 
-      const answerSheet = await prisma.answerSheet.create({
-        data: {
-          studentName,
-          rollNumber,
-          questionPaperId,
-          fileUrl: req.file.path,
-          status: "available",
-        }
+      const answerSheet = await AnswerSheet.create({
+        studentName,
+        rollNumber,
+        questionPaper: questionPaperId,
+        fileUrl: req.file.path,
+        status: "available",
       });
 
       res.status(201).json({
         success: true,
         message: "Answer sheet uploaded successfully.",
-        answerSheet: { ...answerSheet, _id: answerSheet.id },
+        answerSheet,
       });
     } catch (error) {
       console.log("UPLOAD ANSWER SHEET ERROR:", error);
@@ -115,19 +114,17 @@ router.post(
         return {
           studentName: meta.studentName,
           rollNumber: meta.rollNumber,
-          questionPaperId: meta.questionPaperId,
+          questionPaper: meta.questionPaperId,
           fileUrl: file.path,
           status: "available",
         };
       });
 
-      const result = await prisma.answerSheet.createMany({
-        data: answerSheetsToCreate
-      });
+      const result = await AnswerSheet.insertMany(answerSheetsToCreate);
 
       res.status(201).json({
         success: true,
-        message: `${result.count} answer sheets uploaded successfully.`,
+        message: `${result.length} answer sheets uploaded successfully.`,
       });
     } catch (error) {
       console.log("BULK UPLOAD ERROR:", error);
@@ -146,12 +143,12 @@ router.post(
 router.get("/available", authMiddleware, async (req, res) => {
   try {
     const { search } = req.query;
-    let where = { status: "available" };
+    let filter = { status: "available" };
 
     if (search) {
-      where.OR = [
-        { studentName: { contains: search, mode: "insensitive" } },
-        { rollNumber: { contains: search, mode: "insensitive" } },
+      filter.$or = [
+        { studentName: { $regex: search, $options: "i" } },
+        { rollNumber: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -159,20 +156,22 @@ router.get("/available", authMiddleware, async (req, res) => {
       ? req.teacher.subjectCode.split(',').map(c => c.trim()).filter(Boolean)
       : [];
 
+    let scripts;
     if (assignedCodes.length > 0) {
-      where.questionPaper = { subjectCode: { in: assignedCodes } };
+      // Find question papers with matching subject codes
+      const matchingPaperIds = await QuestionPaper.find({
+        subjectCode: { $in: assignedCodes }
+      }).distinct("_id");
+
+      filter.questionPaper = { $in: matchingPaperIds };
     } else {
       // Force empty result if no subject codes are assigned
-      where.questionPaper = { subjectCode: { in: [] } };
+      filter.questionPaper = { $in: [] };
     }
 
-    const scriptsRaw = await prisma.answerSheet.findMany({
-      where,
-      include: { questionPaper: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
+    scripts = await AnswerSheet.find(filter)
+      .populate("questionPaper")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -194,12 +193,9 @@ router.get("/available", authMiddleware, async (req, res) => {
 router.post("/:id/claim", authMiddleware, async (req, res) => {
   try {
     const answerSheetId = req.params.id;
-    const teacherId = req.teacher.id || req.teacher._id;
+    const teacherId = req.teacher._id;
 
-    const answerSheet = await prisma.answerSheet.findUnique({
-      where: { id: answerSheetId },
-      include: { questionPaper: true }
-    });
+    const answerSheet = await AnswerSheet.findById(answerSheetId).populate("questionPaper");
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -234,19 +230,15 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
       });
     }
 
-    const updatedSheet = await prisma.answerSheet.update({
-      where: { id: answerSheetId },
-      data: {
-        status: "assigned",
-        assignedToId: teacherId,
-        assignedAt: new Date(),
-      }
-    });
+    answerSheet.status = "assigned";
+    answerSheet.assignedTo = teacherId;
+    answerSheet.assignedAt = new Date();
+    await answerSheet.save();
 
     res.status(200).json({
       success: true,
       message: "Script claimed successfully.",
-      answerSheet: { ...updatedSheet, _id: updatedSheet.id },
+      answerSheet,
     });
   } catch (error) {
     console.log("CLAIM SCRIPT ERROR:", error);
@@ -262,17 +254,13 @@ router.post("/:id/claim", authMiddleware, async (req, res) => {
 // ============================
 router.get("/assigned", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const scriptsRaw = await prisma.answerSheet.findMany({
-      where: {
-        assignedToId: teacherId,
-        status: { in: ["assigned", "pending"] },
-      },
-      include: { questionPaper: true },
-      orderBy: { assignedAt: "desc" },
-    });
-
-    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
+    const teacherId = req.teacher._id;
+    const scripts = await AnswerSheet.find({
+      assignedTo: teacherId,
+      status: { $in: ["assigned", "pending"] },
+    })
+    .populate("questionPaper")
+    .sort({ assignedAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -293,17 +281,13 @@ router.get("/assigned", authMiddleware, async (req, res) => {
 // ============================
 router.get("/pending", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const scriptsRaw = await prisma.answerSheet.findMany({
-      where: {
-        assignedToId: teacherId,
-        status: "pending",
-      },
-      include: { questionPaper: true },
-      orderBy: { updatedAt: "desc" },
-    });
-
-    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
+    const teacherId = req.teacher._id;
+    const scripts = await AnswerSheet.find({
+      assignedTo: teacherId,
+      status: "pending",
+    })
+    .populate("questionPaper")
+    .sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -324,17 +308,13 @@ router.get("/pending", authMiddleware, async (req, res) => {
 // ============================
 router.get("/evaluated", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const scriptsRaw = await prisma.answerSheet.findMany({
-      where: {
-        assignedToId: teacherId,
-        status: "evaluated",
-      },
-      include: { questionPaper: true },
-      orderBy: { updatedAt: "desc" },
-    });
-
-    const scripts = scriptsRaw.map(s => ({ ...s, _id: s.id }));
+    const teacherId = req.teacher._id;
+    const scripts = await AnswerSheet.find({
+      assignedTo: teacherId,
+      status: "evaluated",
+    })
+    .populate("questionPaper")
+    .sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -355,14 +335,11 @@ router.get("/evaluated", authMiddleware, async (req, res) => {
 // ============================
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const answerSheet = await prisma.answerSheet.findUnique({
-      where: { id: req.params.id },
-      include: {
-        questionPaper: {
-          include: { questions: true }
-        }
-      }
-    });
+    const answerSheet = await AnswerSheet.findById(req.params.id)
+      .populate({
+        path: "questionPaper",
+        populate: { path: "questions" }
+      });
 
     if (!answerSheet) {
       return res.status(404).json({
@@ -373,14 +350,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
     res.status(200).json({
       success: true,
-      answerSheet: {
-        ...answerSheet,
-        _id: answerSheet.id,
-        questionPaper: {
-            ...answerSheet.questionPaper,
-            _id: answerSheet.questionPaper.id
-        }
-      },
+      answerSheet,
     });
   } catch (error) {
     console.log("GET ANSWER SHEET ERROR:", error);

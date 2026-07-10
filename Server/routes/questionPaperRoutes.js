@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import prisma from "../prismaClient.js";
+import QuestionPaper from "../models/QuestionPaper.js";
 import { parseQuestionPaperWithGemini } from "../services/geminiOcrService.js";
 
 const router = express.Router();
@@ -55,15 +55,13 @@ router.post("/upload", upload.single("questionPaper"), async (req, res) => {
 
     const { subject, subjectCode, examName, session, totalMarks } = req.body;
 
-    const paper = await prisma.questionPaper.create({
-      data: {
-        subject,
-        subjectCode,
-        examName,
-        session,
-        totalMarks: Number(totalMarks) || 0,
-        fileUrl: req.file.path,
-      }
+    const paper = await QuestionPaper.create({
+      subject,
+      subjectCode,
+      examName,
+      session,
+      totalMarks: Number(totalMarks) || 0,
+      fileUrl: req.file.path,
     });
 
     let parsedQuestions = [];
@@ -80,7 +78,7 @@ router.post("/upload", upload.single("questionPaper"), async (req, res) => {
     res.status(201).json({
       success: true,
       message,
-      paper: { ...paper, _id: paper.id },
+      paper,
       questions: parsedQuestions || [],
     });
 
@@ -99,16 +97,9 @@ router.post("/upload", upload.single("questionPaper"), async (req, res) => {
 // ============================
 router.get("/", async (req, res) => {
   try {
-    const papersRaw = await prisma.questionPaper.findMany({
-      include: { questions: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    
-    const papers = papersRaw.map(p => ({
-      ...p,
-      _id: p.id,
-      questions: p.questions.map(q => ({ ...q, _id: q.id }))
-    }));
+    const papers = await QuestionPaper.find()
+      .populate("questions")
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,

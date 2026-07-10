@@ -1,5 +1,5 @@
 import express from "express";
-import prisma from "../prismaClient.js";
+import Question from "../models/Question.js";
 
 const router = express.Router();
 
@@ -10,12 +10,8 @@ router.get("/paper/:paperId", async (req, res) => {
   try {
     const { paperId } = req.params;
 
-    const questionsRaw = await prisma.question.findMany({
-      where: { questionPaperId: paperId },
-      orderBy: { createdAt: 'asc' },
-    });
-    
-    const questions = questionsRaw.map(q => ({ ...q, _id: q.id }));
+    const questions = await Question.find({ questionPaper: paperId })
+      .sort({ createdAt: 1 });
 
     res.json({
       success: true,
@@ -46,31 +42,26 @@ router.put("/update-all/:paperId", async (req, res) => {
     for (const q of questions) {
       if (q._id) {
         // Update existing question
-        await prisma.question.update({
-          where: { id: q._id },
-          data: {
-            section: q.section || "",
-            qNo: String(q.qNo),
-            question: q.question,
-            maxMarks: Number(q.maxMarks) || 0,
-            isOptional: Boolean(q.isOptional),
-            groupId: q.groupId || "",
-            requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null
-          }
+        await Question.findByIdAndUpdate(q._id, {
+          section: q.section || "",
+          qNo: String(q.qNo),
+          question: q.question,
+          maxMarks: Number(q.maxMarks) || 0,
+          isOptional: Boolean(q.isOptional),
+          groupId: q.groupId || "",
+          requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null
         });
       } else {
         // Create newly added question
-        await prisma.question.create({
-          data: {
-            section: q.section || "",
-            qNo: String(q.qNo),
-            question: q.question,
-            maxMarks: Number(q.maxMarks) || 0,
-            isOptional: Boolean(q.isOptional),
-            groupId: q.groupId || "",
-            requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null,
-            questionPaperId: paperId
-          }
+        await Question.create({
+          section: q.section || "",
+          qNo: String(q.qNo),
+          question: q.question,
+          maxMarks: Number(q.maxMarks) || 0,
+          isOptional: Boolean(q.isOptional),
+          groupId: q.groupId || "",
+          requiredAttempts: q.requiredAttempts ? Number(q.requiredAttempts) : null,
+          questionPaper: paperId
         });
       }
     }
@@ -89,18 +80,19 @@ router.put("/:id", async (req, res) => {
   try {
     const { qNo, question, maxMarks } = req.body;
 
-    const updatedQuestion = await prisma.question.update({
-      where: { id: req.params.id },
-      data: {
+    const updatedQuestion = await Question.findByIdAndUpdate(
+      req.params.id,
+      {
         qNo,
         question,
         maxMarks: Number(maxMarks) || 0,
-      }
-    });
+      },
+      { new: true }
+    );
 
     res.json({
       success: true,
-      question: { ...updatedQuestion, _id: updatedQuestion.id },
+      question: updatedQuestion,
     });
   } catch (error) {
     console.log(error);
@@ -116,9 +108,7 @@ router.put("/:id", async (req, res) => {
 // ======================================
 router.delete("/:id", async (req, res) => {
   try {
-    await prisma.question.delete({
-      where: { id: req.params.id }
-    });
+    await Question.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,

@@ -1,5 +1,7 @@
 import express from "express";
-import prisma from "../prismaClient.js";
+import AnswerSheet from "../models/AnswerSheet.js";
+import Evaluation from "../models/Evaluation.js";
+import AIEvaluation from "../models/AIEvaluation.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -10,28 +12,24 @@ const router = express.Router();
 
 router.get("/stats", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
+    const teacherId = req.teacher._id;
 
-    const totalAssigned = await prisma.answerSheet.count({
-      where: { assignedToId: teacherId },
+    const totalAssigned = await AnswerSheet.countDocuments({
+      assignedTo: teacherId,
     });
 
-    const pendingCount = await prisma.answerSheet.count({
-      where: {
-        assignedToId: teacherId,
-        status: "pending",
-      },
+    const pendingCount = await AnswerSheet.countDocuments({
+      assignedTo: teacherId,
+      status: "pending",
     });
 
-    const completedCount = await prisma.answerSheet.count({
-      where: {
-        assignedToId: teacherId,
-        status: "evaluated",
-      },
+    const completedCount = await AnswerSheet.countDocuments({
+      assignedTo: teacherId,
+      status: "evaluated",
     });
 
-    const aiEvaluationsCount = await prisma.aIEvaluation.count({
-      where: { teacherId },
+    const aiEvaluationsCount = await AIEvaluation.countDocuments({
+      teacherId,
     });
 
     res.status(200).json({
@@ -59,21 +57,11 @@ router.get("/stats", authMiddleware, async (req, res) => {
 
 router.get("/recent-activities", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const activitiesRaw = await prisma.evaluation.findMany({
-      where: { teacherId },
-      include: { answerSheet: true },
-      orderBy: { updatedAt: 'desc' },
-      take: 10,
-    });
-    
-    const activities = activitiesRaw.map(a => {
-        const act = { ...a, _id: a.id };
-        if (act.answerSheet) {
-            act.answerSheetId = { ...act.answerSheet, _id: act.answerSheet.id };
-        }
-        return act;
-    });
+    const teacherId = req.teacher._id;
+    const activities = await Evaluation.find({ teacherId })
+      .populate("answerSheetId")
+      .sort({ updatedAt: -1 })
+      .limit(10);
 
     res.status(200).json({
       success: true,
@@ -95,20 +83,22 @@ router.get("/recent-activities", authMiddleware, async (req, res) => {
 
 router.get("/subject-results", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
-    const evaluations = await prisma.evaluation.findMany({
-      where: { teacherId, status: "submitted" },
-      include: { answerSheet: { include: { questionPaper: true } } }
-    });
+    const teacherId = req.teacher._id;
+    const evaluations = await Evaluation.find({ teacherId, status: "submitted" })
+      .populate({
+        path: "answerSheetId",
+        populate: { path: "questionPaper" }
+      });
     
     const subjectsMap = {};
     evaluations.forEach(evalRecord => {
-      const qp = evalRecord.answerSheet?.questionPaper;
+      const qp = evalRecord.answerSheetId?.questionPaper;
       if (qp) {
-        if (!subjectsMap[qp.id]) {
-          subjectsMap[qp.id] = { ...qp, totalEvaluated: 0 };
+        const qpId = qp._id.toString();
+        if (!subjectsMap[qpId]) {
+          subjectsMap[qpId] = { ...qp.toObject(), totalEvaluated: 0 };
         }
-        subjectsMap[qp.id].totalEvaluated++;
+        subjectsMap[qpId].totalEvaluated++;
       }
     });
 
@@ -121,18 +111,22 @@ router.get("/subject-results", authMiddleware, async (req, res) => {
 
 router.get("/subject-results/:questionPaperId", authMiddleware, async (req, res) => {
   try {
-    const teacherId = req.teacher.id || req.teacher._id;
+    const teacherId = req.teacher._id;
     const { questionPaperId } = req.params;
-    const evaluationsRaw = await prisma.evaluation.findMany({
-      where: { 
-        teacherId, 
-        status: "submitted",
-        answerSheet: { questionPaperId }
-      },
-      include: { answerSheet: { include: { questionPaper: true } } }
+    
+    // Find answer sheets for this question paper
+    const answerSheetIds = await AnswerSheet.find({ questionPaper: questionPaperId }).distinct("_id");
+    
+    const evaluations = await Evaluation.find({
+      teacherId,
+      status: "submitted",
+      answerSheetId: { $in: answerSheetIds }
+    })
+    .populate({
+      path: "answerSheetId",
+      populate: { path: "questionPaper" }
     });
 
-    const evaluations = evaluationsRaw.map(e => ({ ...e, _id: e.id }));
     res.json({ success: true, evaluations });
   } catch (error) {
     console.error("Fetch Teacher Subject Details Error:", error);

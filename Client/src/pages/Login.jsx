@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAuth } from "../context/AdminContext";
-import { Sparkles, Loader2, Mail, Lock, ArrowLeft, User, Building, Briefcase } from "lucide-react";
+import { Sparkles, Loader2, Mail, Lock, ArrowLeft, User, Building, Briefcase, Eye, EyeOff } from "lucide-react";
 import api from "../api/axiosConfig";
 
 const Login = () => {
   const [mode, setMode] = useState("login"); // "login", "signup", "verify-signup", "forgot-password", "reset-password"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
   const [employeeId, setEmployeeId] = useState("");
@@ -205,7 +206,10 @@ const Login = () => {
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock size={18} className="text-gray-500" /></div>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="••••••••" minLength={6} />
+                <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="••••••••" minLength={6} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-300">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           )}
@@ -223,13 +227,6 @@ const Login = () => {
 
         {/* Mode Toggles */}
         <div className="mt-6 flex flex-col gap-3">
-          {mode === "login" && (
-            <div className="text-center text-sm text-gray-400">
-              Don't have an account?{" "}
-              <button onClick={() => handleModeChange("signup")} className="text-cyan-400 hover:text-cyan-300 font-medium">Sign Up</button>
-            </div>
-          )}
-          
           {mode !== "login" && (
             <button type="button" onClick={() => handleModeChange("login")} className="w-full text-sm text-gray-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
               <ArrowLeft size={16} /> Back to Login

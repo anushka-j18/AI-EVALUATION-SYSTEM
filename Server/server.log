@@ -1,0 +1,5 @@
+◇ injected env (5) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+MongoDB Connected: ac-h23aqg3-shard-00-00.hj8vmmh.mongodb.net
+Server running on 5001

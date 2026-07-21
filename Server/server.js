@@ -15,6 +15,12 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+
+import studentAuthRoutes from "./routes/studentAuthRoutes.js";
+import adminStudentRoutes from "./routes/adminStudentRoutes.js";
+import adminExamRoutes from "./routes/adminExamRoutes.js";
+import studentPortalRoutes from "./routes/studentPortalRoutes.js";
+
 import "./services/cronService.js";
 
 dotenv.config();
@@ -36,7 +42,12 @@ app.use("/api/teacher-evaluations", teacherEvaluationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin/students", adminStudentRoutes);
+app.use("/api/admin/exams", adminExamRoutes);
 app.use("/api/admin", adminRoutes);
+
+app.use("/api/student/auth", studentAuthRoutes);
+app.use("/api/student/portal", studentPortalRoutes);
 
 const PORT = process.env.PORT || 5000;
 

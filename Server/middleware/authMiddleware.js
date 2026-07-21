@@ -70,5 +70,36 @@ const protectAdmin = async (req, res, next) => {
   }
 };
 
+const protectStudent = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Access denied. No token provided.",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded.student) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Not a student.",
+      });
+    }
+
+    req.student = decoded.student;
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: "Invalid or expired student token.",
+    });
+  }
+};
+
 export default authMiddleware;
-export { protectAdmin };
+export { protectAdmin, protectStudent };

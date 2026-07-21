@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAuth } from "../context/AdminContext";
-import { Sparkles, Loader2, Mail, Lock, ArrowLeft, User, Building, Briefcase, Eye, EyeOff } from "lucide-react";
+import { useStudentAuth } from "../context/StudentContext";
+import { Sparkles, Loader2, Mail, Lock, ArrowLeft, User, Building, Briefcase, Eye, EyeOff, Hash } from "lucide-react";
 import api from "../api/axiosConfig";
 
 const Login = () => {
@@ -11,6 +12,7 @@ const Login = () => {
 
   const [mode, setMode] = useState("login"); // "login", "signup", "verify-signup", "forgot-password", "reset-password"
   const [email, setEmail] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
@@ -24,6 +26,7 @@ const Login = () => {
 
   const { login: teacherLogin, register, verifyRegistration, forgotPassword, verifyResetOtp, resetPassword } = useAuth();
   const { login: adminLogin } = useAdminAuth();
+  const { login: studentLogin } = useStudentAuth();
   const navigate = useNavigate();
 
   const handleModeChange = (newMode) => {
@@ -50,9 +53,9 @@ const Login = () => {
           if (result.success) navigate("/admin");
           else setError(result.message || "Admin login failed.");
         } else if (role === "student") {
-          // Assuming student authentication logic is handled or to be implemented here
-          // For now, if no student backend, show message or mock login
-          setError("Student portal is currently under construction.");
+          const result = await studentLogin(registrationNumber, password);
+          if (result.success) navigate("/student/dashboard");
+          else setError(result.message || "Student login failed.");
         } else {
           const result = await teacherLogin(email, password);
           if (result.success) {
@@ -174,15 +177,26 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Email Field */}
+          {/* Email/Registration Field */}
           <div className={mode === "verify-signup" || mode === "verify-reset-otp" || mode === "reset-password" ? "hidden" : "block"}>
-            <label className="block text-sm font-bold text-slate-600 mb-2">Email Address</label>
+            <label className="block text-sm font-bold text-slate-600 mb-2">
+              {role === "student" && mode === "login" ? "Registration Number" : "Email Address"}
+            </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail size={18} className="text-slate-400" /></div>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={mode === 'verify-signup' || mode === 'verify-reset-otp' || mode === 'reset-password'} 
-                     className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400 disabled:opacity-50" 
-                     style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
-                     placeholder="name@institute.edu" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                {role === "student" && mode === "login" ? <Hash size={18} className="text-slate-400" /> : <Mail size={18} className="text-slate-400" />}
+              </div>
+              {role === "student" && mode === "login" ? (
+                <input type="text" required value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)}
+                       className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400" 
+                       style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                       placeholder="REG-12345" />
+              ) : (
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={mode === 'verify-signup' || mode === 'verify-reset-otp' || mode === 'reset-password'} 
+                       className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400 disabled:opacity-50" 
+                       style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                       placeholder="name@institute.edu" />
+              )}
             </div>
           </div>
 

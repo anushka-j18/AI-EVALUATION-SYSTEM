@@ -31,24 +31,24 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-full w-64 bg-slate-950/80 backdrop-blur-xl border-r border-white/10 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
+      className={`fixed top-0 left-0 h-full w-64 bg-[#f1f5f9] border-r border-white/60 z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-[10px_0_20px_#cbd5e150] ${
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
     >
       {/* Brand */}
-      <div className="h-20 flex items-center px-6 border-b border-white/10 shrink-0">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 mr-3">
-          <Sparkles className="text-white" size={20} />
+      <div className="h-20 flex items-center px-6 border-b border-white/60 shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] mr-3 text-blue-600">
+          <Sparkles size={20} />
         </div>
         <div>
-          <h1 className="text-xl font-black text-white leading-none">DES</h1>
-          <p className="text-xs text-cyan-400 font-medium">Evaluation System</p>
+          <h1 className="text-xl font-black text-slate-800 leading-none">DES</h1>
+          <p className="text-xs text-blue-500 font-medium mt-1">Evaluation System</p>
         </div>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-        <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
           Menu
         </p>
         {navItems.map((item) => {
@@ -56,10 +56,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             return (
               <div
                 key={item.name}
-                className="flex items-center px-4 py-3 rounded-xl text-gray-600 cursor-not-allowed opacity-50"
+                className="flex items-center px-4 py-3 rounded-xl text-slate-400 cursor-not-allowed opacity-50"
               >
                 {item.icon}
-                <span className="ml-3 font-medium">{item.name}</span>
+                <span className="ml-3 font-bold">{item.name}</span>
               </div>
             );
           }
@@ -73,28 +73,28 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 if (window.innerWidth < 1024) toggleSidebar();
               }}
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
+                `flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-bold ${
                   isActive
-                    ? "bg-white/10 text-cyan-400 border-l-4 border-cyan-400"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent"
+                    ? "bg-[#f1f5f9] text-blue-600 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-[#f1f5f9] hover:shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]"
                 }`
               }
             >
               {item.icon}
-              <span className="ml-3 font-medium">{item.name}</span>
+              <span className="ml-3">{item.name}</span>
             </NavLink>
           );
         })}
       </div>
 
       {/* Bottom Section */}
-      <div className="p-4 border-t border-white/10 shrink-0">
+      <div className="p-4 border-t border-white/60 shrink-0">
         <button
           onClick={logout}
-          className="w-full flex items-center px-4 py-3 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+          className="w-full flex items-center px-4 py-3 text-slate-500 hover:text-red-500 font-bold rounded-xl transition-all hover:bg-[#f1f5f9] hover:shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
         >
           <LogOut size={20} />
-          <span className="ml-3 font-medium">Logout</span>
+          <span className="ml-3">Logout</span>
         </button>
       </div>
     </aside>

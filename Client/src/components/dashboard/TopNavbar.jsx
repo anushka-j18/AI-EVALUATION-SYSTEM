@@ -15,30 +15,28 @@ const TopNavbar = ({ toggleSidebar, title }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/60 backdrop-blur-xl border-b border-white/10 h-20 px-6 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-[#f1f5f9]/80 backdrop-blur-xl border-b border-white/60 h-20 px-6 flex items-center justify-between shadow-[0_4px_10px_#cbd5e150]">
       <div className="flex items-center">
         <button
           onClick={toggleSidebar}
-          className="lg:hidden mr-4 p-2 rounded-lg bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+          className="lg:hidden mr-4 w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center text-slate-500 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all"
         >
-          <Menu size={24} />
+          <Menu size={20} />
         </button>
-        <h2 className="text-2xl font-bold text-white hidden sm:block">
+        <h2 className="text-2xl font-black text-slate-800 hidden sm:block">
           {title || "Dashboard"}
         </h2>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="text-right hidden sm:block">
-          <p className="text-sm font-bold text-white">{teacher?.name}</p>
-          <p className="text-xs text-gray-400">{teacher?.department || "Evaluator"}</p>
+          <p className="text-sm font-bold text-slate-800">{teacher?.name}</p>
+          <p className="text-xs text-slate-500 font-medium">{teacher?.department || "Evaluator"}</p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 p-0.5">
-          <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center border-2 border-slate-900">
-            <span className="text-xs font-bold text-white">
-              {getInitials(teacher?.name)}
-            </span>
-          </div>
+        <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]">
+          <span className="text-sm font-black text-blue-600">
+            {getInitials(teacher?.name)}
+          </span>
         </div>
       </div>
     </header>

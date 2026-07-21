@@ -56,14 +56,16 @@ const DashboardHome = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border border-cyan-500/20 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
+      <div className="bg-[#f1f5f9] border border-white/80 rounded-[3rem] p-10 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] relative overflow-hidden flex items-center gap-6">
+        <div className="w-20 h-20 rounded-3xl bg-[#f1f5f9] flex items-center justify-center shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] text-amber-500 shrink-0">
+          <span className="text-4xl">👋</span>
+        </div>
         <div className="relative z-10">
-          <h1 className="text-3xl font-black text-white mb-2">
-            Welcome back, {teacher?.name?.split(" ")[0]}! 👋
+          <h1 className="text-3xl font-black text-slate-800 mb-2">
+            Welcome back, {teacher?.name?.split(" ")[0]}!
           </h1>
-          <p className="text-cyan-100 max-w-xl text-lg">
-            You have {stats.pendingCount} pending scripts to evaluate. Let's make today productive.
+          <p className="text-slate-500 font-medium text-lg">
+            You have <span className="font-bold text-blue-600">{stats.pendingCount}</span> pending scripts to evaluate. Let's make today productive.
           </p>
         </div>
       </div>
@@ -99,9 +101,11 @@ const DashboardHome = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activities */}
         <div className="lg:col-span-2">
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center">
-              <Clock className="mr-3 text-cyan-400" size={20} />
+          <div className="bg-[#f1f5f9] border border-white/80 rounded-[3rem] p-8 md:p-10 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
+            <h2 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] flex items-center justify-center text-blue-600">
+                <Clock size={20} />
+              </div>
               Recent Activities
             </h2>
 
@@ -110,28 +114,28 @@ const DashboardHome = () => {
                 {recentActivities.map((activity) => (
                   <div
                     key={activity._id}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-between p-5 rounded-3xl bg-[#f1f5f9] shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
                   >
                     <div>
-                      <h4 className="font-semibold text-white">
+                      <h4 className="font-bold text-slate-800">
                         {activity.studentName}
                       </h4>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm font-medium text-slate-500">
                         Roll: {activity.rollNumber}
                       </p>
                     </div>
                     <div className="text-right">
                       {activity.status === "submitted" ? (
                         <>
-                          <div className="text-green-400 text-sm font-semibold mb-1">
+                          <div className="text-emerald-500 text-sm font-bold mb-1">
                             Evaluated
                           </div>
-                          <div className="text-xl font-black text-white">
+                          <div className="text-xl font-black text-slate-800">
                             {activity.totalMarks}
                           </div>
                         </>
                       ) : (
-                        <div className="text-orange-400 text-sm font-semibold">
+                        <div className="text-amber-500 text-sm font-bold">
                           Draft Saved
                         </div>
                       )}
@@ -140,53 +144,53 @@ const DashboardHome = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-400 bg-slate-900/30 rounded-2xl border border-dashed border-white/10">
-                <p>No recent evaluation activities.</p>
+              <div className="text-center py-16 bg-[#f1f5f9] shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] rounded-[2rem]">
+                <p className="text-slate-500 font-medium">No recent evaluation activities.</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white mb-6">Quick Actions</h2>
+        <div className="space-y-6">
+          <h2 className="text-xl font-black text-slate-800 mb-2 pl-2">Quick Actions</h2>
           
           <Link
             to="/dashboard/available-scripts"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/20 hover:from-cyan-600/30 hover:to-blue-600/30 transition-all group"
+            className="flex items-center gap-5 p-6 rounded-[2rem] bg-[#f1f5f9] shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] hover:shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] hover:-translate-y-1 transition-all group"
           >
-            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center text-blue-600 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] group-hover:scale-110 transition-transform">
               <FileSearch size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white group-hover:text-cyan-100">Find Scripts</h3>
-              <p className="text-sm text-gray-400">Claim available sheets</p>
+              <h3 className="font-black text-slate-800 group-hover:text-blue-600 transition-colors">Find Scripts</h3>
+              <p className="text-sm font-medium text-slate-500">Claim available sheets</p>
             </div>
           </Link>
 
           <Link
             to="/dashboard/pending"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-orange-600/20 to-red-600/20 border border-orange-500/20 hover:from-orange-600/30 hover:to-red-600/30 transition-all group"
+            className="flex items-center gap-5 p-6 rounded-[2rem] bg-[#f1f5f9] shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] hover:shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] hover:-translate-y-1 transition-all group"
           >
-            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center text-amber-500 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] group-hover:scale-110 transition-transform">
               <PenTool size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white group-hover:text-orange-100">Resume Work</h3>
-              <p className="text-sm text-gray-400">Continue evaluations</p>
+              <h3 className="font-black text-slate-800 group-hover:text-amber-500 transition-colors">Resume Work</h3>
+              <p className="text-sm font-medium text-slate-500">Continue evaluations</p>
             </div>
           </Link>
 
           <Link
             to="/upload-question-paper"
-            className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-purple-600/20 to-fuchsia-600/20 border border-purple-500/20 hover:from-purple-600/30 hover:to-fuchsia-600/30 transition-all group"
+            className="flex items-center gap-5 p-6 rounded-[2rem] bg-[#f1f5f9] shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] hover:shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] hover:-translate-y-1 transition-all group"
           >
-            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center text-purple-500 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] group-hover:scale-110 transition-transform">
               <UploadCloud size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-white group-hover:text-purple-100">Upload Paper</h3>
-              <p className="text-sm text-gray-400">Add a new question paper</p>
+              <h3 className="font-black text-slate-800 group-hover:text-purple-500 transition-colors">Upload Paper</h3>
+              <p className="text-sm font-medium text-slate-500">Add a new question paper</p>
             </div>
           </Link>
         </div>

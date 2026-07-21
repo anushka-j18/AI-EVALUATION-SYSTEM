@@ -44,44 +44,46 @@ const fetchEvaluations = async () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-3xl font-black text-white flex items-center gap-3">
-          <Brain className="text-purple-500" size={32} />
+        <h1 className="text-3xl font-black text-slate-800 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center shrink-0 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+            <Brain className="text-purple-500" size={28} />
+          </div>
           AI Evaluation Results
         </h1>
-        <p className="text-gray-400 mt-1">
+        <p className="text-slate-500 font-medium mt-2">
           Review AI-generated marks and feedback for your scripts
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Col: List of scripts with AI evals */}
-        <div className="lg:col-span-1 bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl h-fit max-h-[80vh] overflow-y-auto">
-          <h2 className="font-bold text-white mb-4">Scripts with AI Data</h2>
+        <div className="lg:col-span-1 bg-[#f1f5f9] border border-white/80 rounded-[2.5rem] p-6 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] h-fit max-h-[80vh] overflow-y-auto">
+          <h2 className="font-black text-slate-800 mb-6 text-xl">Scripts with AI Data</h2>
           
           {loading ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+              <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
             </div>
           ) : evaluations.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {evaluations.map((ev) => (
                 <button
                   key={ev._id}
                   onClick={() => handleSelect(ev._id)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                  className={`w-full text-left p-4 rounded-2xl transition-all font-medium ${
                     selectedEval === ev._id
-                      ? "bg-purple-500/20 border-purple-500 text-white"
-                      : "bg-slate-900/50 border-white/5 text-gray-300 hover:bg-slate-800"
+                      ? "bg-[#f1f5f9] text-purple-600 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
+                      : "bg-[#f1f5f9] text-slate-600 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] hover:shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] hover:-translate-y-0.5"
                   }`}
                 >
-                  <div className="font-bold truncate">{ev.studentName}</div>
-                  <div className="text-xs opacity-70 mt-1">Roll: {ev.rollNumber}</div>
+                  <div className="font-bold truncate text-slate-800">{ev.studentName}</div>
+                  <div className={`text-xs mt-1 ${selectedEval === ev._id ? "text-purple-400" : "text-slate-400"}`}>Roll: {ev.rollNumber}</div>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500 text-sm bg-slate-900/30 rounded-xl border border-dashed border-white/10">
+            <div className="text-center py-10 text-slate-500 text-sm font-medium bg-[#f1f5f9] rounded-2xl shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff]">
               Run AI Evaluation from the Digital Evaluation panel first.
             </div>
           )}
@@ -90,31 +92,32 @@ const fetchEvaluations = async () => {
         {/* Right Col: Comparison details */}
         <div className="lg:col-span-2">
           {selectedEval && comparison ? (
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl space-y-6">
+            <div className="bg-[#f1f5f9] border border-white/80 rounded-[3rem] p-8 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] space-y-8">
               
-              <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/60 pb-6 gap-6">
                 <div>
-                  <h2 className="text-xl font-bold text-white">{comparison.evaluation.studentName}</h2>
-                  <p className="text-purple-400 text-sm mt-1">AI vs Teacher Comparison</p>
+                  <h2 className="text-2xl font-black text-slate-800">{comparison.evaluation.studentName}</h2>
+                  <p className="text-purple-500 font-bold text-sm mt-1">AI vs Teacher Comparison</p>
                 </div>
-                <div className="flex gap-6 text-center">
+                <div className="flex gap-8 text-center bg-[#f1f5f9] p-4 rounded-2xl shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
                   <div>
-                    <div className="text-sm text-gray-400">Teacher Total</div>
-                    <div className="text-2xl font-bold text-cyan-400">{comparison.evaluation.totalMarks}</div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Teacher Total</div>
+                    <div className="text-2xl font-black text-blue-600">{comparison.evaluation.totalMarks}</div>
                   </div>
+                  <div className="w-px bg-slate-300"></div>
                   <div>
-                    <div className="text-sm text-gray-400">AI Total</div>
-                    <div className="text-2xl font-bold text-purple-400">{comparison.aiEvaluation.totalAiMarks}</div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">AI Total</div>
+                    <div className="text-2xl font-black text-purple-600">{comparison.aiEvaluation.totalAiMarks}</div>
                   </div>
                 </div>
               </div>
 
               {loadingCompare ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+                <div className="flex justify-center py-20">
+                  <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {comparison.aiEvaluation.questionWiseResults.map((aiResult, idx) => {
                     const teacherResult = comparison.evaluation.questionWiseMarks.find(
                       (t) => t.questionNo === aiResult.questionNo
@@ -123,35 +126,35 @@ const fetchEvaluations = async () => {
                     const diff = teacherResult ? teacherResult.obtainedMarks - aiResult.aiMarks : 0;
                     
                     return (
-                      <div key={idx} className="bg-slate-900/60 border border-white/5 rounded-2xl p-5">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="font-bold text-white">Q{aiResult.questionNo}.</div>
-                          <div className="flex gap-4">
-                            <div className="px-3 py-1 bg-cyan-900/30 text-cyan-400 rounded-lg text-sm border border-cyan-500/20">
+                      <div key={idx} className="bg-[#f1f5f9] rounded-3xl p-6 shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                          <div className="font-black text-slate-800 text-lg">Q{aiResult.questionNo}.</div>
+                          <div className="flex flex-wrap gap-3">
+                            <div className="px-4 py-2 bg-[#f1f5f9] text-blue-600 font-bold rounded-xl text-sm shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff]">
                               Teacher: {teacherResult ? teacherResult.obtainedMarks : 0}
                             </div>
-                            <div className="px-3 py-1 bg-purple-900/30 text-purple-400 rounded-lg text-sm border border-purple-500/20">
+                            <div className="px-4 py-2 bg-[#f1f5f9] text-purple-600 font-bold rounded-xl text-sm shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff]">
                               AI: {aiResult.aiMarks}
                             </div>
-                            <div className="px-3 py-1 bg-slate-800 text-gray-300 rounded-lg text-sm border border-white/10">
+                            <div className="px-4 py-2 bg-[#f1f5f9] text-slate-500 font-bold rounded-xl text-sm shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff]">
                               Max: {aiResult.maxMarks}
                             </div>
                           </div>
                         </div>
                         
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div className="bg-slate-950 p-4 rounded-xl border border-white/5">
-                            <div className="text-cyan-400 font-semibold mb-2 flex items-center gap-2">
+                        <div className="grid md:grid-cols-2 gap-6 text-sm">
+                          <div className="bg-[#f1f5f9] p-5 rounded-2xl shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+                            <div className="text-blue-600 font-black mb-3 flex items-center gap-2 text-base">
                               Teacher Feedback
                             </div>
-                            <p className="text-gray-300">{teacherResult?.comment || "No comment provided."}</p>
+                            <p className="text-slate-600 font-medium leading-relaxed">{teacherResult?.comment || "No comment provided."}</p>
                           </div>
                           
-                          <div className="bg-purple-950/20 p-4 rounded-xl border border-purple-500/10">
-                            <div className="text-purple-400 font-semibold mb-2 flex items-center gap-2">
-                              <Brain size={14} /> AI Analysis
+                          <div className="bg-[#f1f5f9] p-5 rounded-2xl shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+                            <div className="text-purple-600 font-black mb-3 flex items-center gap-2 text-base">
+                              <Brain size={16} /> AI Analysis
                             </div>
-                            <p className="text-purple-100/70">{aiResult.aiFeedback}</p>
+                            <p className="text-slate-600 font-medium leading-relaxed">{aiResult.aiFeedback}</p>
                           </div>
                         </div>
                       </div>
@@ -161,9 +164,11 @@ const fetchEvaluations = async () => {
               )}
             </div>
           ) : (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-gray-500 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
-              <Brain size={48} className="mb-4 opacity-50 text-purple-500" />
-              <p>Select a script from the list to view the AI comparison.</p>
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-slate-400 bg-[#f1f5f9] border border-white/80 rounded-[3rem] shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
+              <div className="w-24 h-24 bg-[#f1f5f9] rounded-3xl flex items-center justify-center mb-6 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+                <Brain size={48} className="text-purple-400" />
+              </div>
+              <p className="font-medium text-lg">Select a script from the list to view the AI comparison.</p>
             </div>
           )}
         </div>

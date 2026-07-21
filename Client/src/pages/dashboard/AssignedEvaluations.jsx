@@ -53,8 +53,8 @@ const fetchScripts = async () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white">Assigned Evaluations</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-3xl font-black text-slate-800">Assigned Evaluations</h1>
+          <p className="text-slate-500 font-medium mt-1">
             Scripts assigned to you for evaluation
           </p>
         </div>
@@ -65,10 +65,10 @@ const fetchScripts = async () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter by student name or roll no..."
-            className="w-full bg-slate-900/70 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full bg-[#f1f5f9] border-none rounded-2xl py-4 pl-14 pr-4 text-slate-800 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] focus:outline-none focus:shadow-[inset_6px_6px_12px_#cbd5e1,inset_-6px_-6px_12px_#ffffff] transition-shadow font-medium"
           />
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
             size={20}
           />
         </div>
@@ -76,10 +76,10 @@ const fetchScripts = async () => {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+          <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
         </div>
       ) : filteredScripts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredScripts.map((script) => (
             <ScriptCard
               key={script._id}
@@ -98,14 +98,14 @@ const fetchScripts = async () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl">
-          <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-            <ClipboardX size={32} className="text-gray-500" />
+        <div className="bg-[#f1f5f9] border border-white/80 rounded-[3rem] p-12 text-center shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
+          <div className="w-24 h-24 bg-[#f1f5f9] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+            <ClipboardX size={40} className="text-slate-400" />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">
+          <h3 className="text-2xl font-black text-slate-800 mb-2">
             No Assigned Scripts
           </h3>
-          <p className="text-gray-400">
+          <p className="text-slate-500 font-medium">
             {search
               ? "No assigned scripts match your filter."
               : "You don't have any scripts assigned to you right now. Go to Available Scripts to claim some."}

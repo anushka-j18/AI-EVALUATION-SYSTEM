@@ -176,13 +176,6 @@ const fetchData = async () => {
   const handleSubmit = async () => {
     const evaluationStartTime = new Date(evaluation.createdAt).getTime();
     const currentTime = new Date().getTime();
-    const durationInMinutes = (currentTime - evaluationStartTime) / 1000 / 60;
-
-    if (durationInMinutes < 2) {
-      const remainingSeconds = Math.ceil((2 * 60) - ((currentTime - evaluationStartTime) / 1000));
-      alert(`Minimum evaluation time is 2 minutes. Please review the paper carefully.\nWait ${Math.floor(remainingSeconds/60)}m ${remainingSeconds%60}s more before submitting.`);
-      return;
-    }
 
     const hasGlobalAnnotations = annotations && annotations.length > 0;
     const invalidQuestions = evaluation.questionWiseMarks.filter(qm => 
@@ -277,19 +270,19 @@ const fetchData = async () => {
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center h-[80vh]">
-        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mb-4" />
-        <h2 className="text-xl font-bold text-white">Preparing Evaluation Environment...</h2>
+        <Loader2 className="w-16 h-16 text-blue-500 animate-spin mb-6" />
+        <h2 className="text-2xl font-black text-slate-800">Preparing Evaluation Environment...</h2>
       </div>
     );
   }
 
   if (error || !sheet || !evaluation) {
     return (
-      <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center max-w-2xl mx-auto mt-10">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-red-400 mb-2">Error</h2>
-        <p className="text-red-200">{error || "Something went wrong."}</p>
-        <button onClick={() => navigate("/dashboard")} className="mt-6 px-6 py-2 bg-slate-800 rounded-lg text-white hover:bg-slate-700">Go Back</button>
+      <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-[2rem] text-center max-w-2xl mx-auto mt-10 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
+        <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4 drop-shadow-md" />
+        <h2 className="text-2xl font-black text-red-500 mb-2">Error</h2>
+        <p className="text-red-400 font-bold mb-6">{error || "Something went wrong."}</p>
+        <button onClick={() => navigate("/dashboard")} className="px-8 py-3 bg-[#f1f5f9] rounded-2xl text-slate-600 hover:text-slate-800 font-bold shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all">Go Back</button>
       </div>
     );
   }
@@ -300,90 +293,90 @@ const fetchData = async () => {
   const qpUrl = sheet.questionPaper?.fileUrl ? `http://localhost:5001/${sheet.questionPaper.fileUrl.replace(/\\/g, "/")}` : null;
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-6 -mx-4 md:-mx-6 px-4 md:px-6">
+    <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-8 -mx-4 md:-mx-6 px-4 md:px-6">
       
       {/* 1. LEFT PANEL: Question Paper Drawer */}
       {showQPaper && qpUrl && (
-        <div className="w-full lg:w-[30%] h-[50vh] lg:h-full bg-slate-900 rounded-3xl border border-white/10 flex flex-col shadow-2xl overflow-hidden shrink-0 transition-all">
-          <div className="bg-slate-950 px-4 py-3 border-b border-white/10 flex justify-between items-center shrink-0">
-            <h3 className="font-bold text-white flex items-center gap-2"><FileText size={18} className="text-cyan-400"/> Question Paper</h3>
-            <button onClick={() => setShowQPaper(false)} className="p-1 hover:bg-white/10 rounded-lg text-gray-400">
+        <div className="w-full lg:w-[30%] h-[50vh] lg:h-full bg-[#f1f5f9] rounded-[3rem] border border-white/80 flex flex-col shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] overflow-hidden shrink-0 transition-all">
+          <div className="bg-[#f1f5f9] px-6 py-4 border-b border-white/60 flex justify-between items-center shrink-0 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] rounded-t-[3rem] z-10">
+            <h3 className="font-black text-slate-800 flex items-center gap-2"><FileText size={20} className="text-blue-500"/> Question Paper</h3>
+            <button onClick={() => setShowQPaper(false)} className="p-2 bg-[#f1f5f9] hover:text-slate-800 rounded-xl text-slate-500 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all">
               <PanelLeftClose size={20} />
             </button>
           </div>
-          <div className="flex-1 bg-white">
-            <iframe src={`${qpUrl}#toolbar=0`} className="w-full h-full" title="Question Paper" />
+          <div className="flex-1 bg-white relative">
+            <iframe src={`${qpUrl}#toolbar=0`} className="w-full h-full border-0" title="Question Paper" />
           </div>
         </div>
       )}
 
       {/* 2. CENTER PANEL: Answer Script Viewer & Annotations */}
-      <div className={`w-full ${showQPaper ? 'lg:w-[40%]' : 'lg:w-1/2'} h-[50vh] lg:h-full bg-slate-900 rounded-3xl border border-white/10 flex flex-col overflow-hidden relative shadow-2xl transition-all`}>
-        <div className="bg-slate-950 px-4 py-3 border-b border-white/10 flex justify-between items-center z-20 shrink-0 flex-wrap gap-3">
+      <div className={`w-full ${showQPaper ? 'lg:w-[40%]' : 'lg:w-1/2'} h-[50vh] lg:h-full bg-[#f1f5f9] rounded-[3rem] border border-white/80 flex flex-col overflow-hidden relative shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] transition-all`}>
+        <div className="bg-[#f1f5f9] px-6 py-4 border-b border-white/60 flex justify-between items-center z-20 shrink-0 flex-wrap gap-4 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] rounded-t-[3rem]">
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {!showQPaper && qpUrl && (
-              <button onClick={() => setShowQPaper(true)} className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 rounded-lg text-sm font-bold border border-cyan-500/20">
-                <PanelLeftOpen size={16} /> View Q. Paper
+              <button onClick={() => setShowQPaper(true)} className="flex items-center gap-2 px-4 py-2 bg-[#f1f5f9] text-blue-600 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all">
+                <PanelLeftOpen size={18} /> View Q. Paper
               </button>
             )}
             <div className="truncate">
-              <h3 className="font-bold text-white truncate">{sheet.studentName}</h3>
-              <p className="text-xs text-gray-400">Roll: {sheet.rollNumber}</p>
+              <h3 className="font-black text-slate-800 truncate text-lg">{sheet.studentName}</h3>
+              <p className="text-xs text-slate-500 font-bold">Roll: {sheet.rollNumber}</p>
             </div>
           </div>
 
           {/* DRAWING TOOLBAR */}
-          <div className="flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 gap-1">
+          <div className="flex items-center bg-[#f1f5f9] rounded-2xl p-1.5 gap-2 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
              <button 
                 onClick={() => setDrawMode("scroll")}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${drawMode === 'scroll' ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+                className={`p-2 rounded-xl transition-all flex items-center justify-center ${drawMode === 'scroll' ? 'bg-[#f1f5f9] text-blue-600 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Scroll/Pan Document"
              >
-               <MousePointer2 size={16} />
+               <MousePointer2 size={18} />
              </button>
              <button 
                 onClick={() => setDrawMode("tick")}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${drawMode === 'tick' ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:bg-white/5'}`}
+                className={`p-2 rounded-xl transition-all flex items-center justify-center ${drawMode === 'tick' ? 'bg-[#f1f5f9] text-green-600 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Drop Tick"
              >
-               <Check size={18} className="text-green-500" />
+               <Check size={20} className={drawMode === 'tick' ? "text-green-600" : ""} />
              </button>
              <button 
                 onClick={() => setDrawMode("cross")}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${drawMode === 'cross' ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:bg-white/5'}`}
+                className={`p-2 rounded-xl transition-all flex items-center justify-center ${drawMode === 'cross' ? 'bg-[#f1f5f9] text-red-600 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Drop Cross"
              >
-               <X size={18} className="text-red-500" />
+               <X size={20} className={drawMode === 'cross' ? "text-red-600" : ""} />
              </button>
              <button 
                 onClick={() => setDrawMode("pencil")}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${drawMode === 'pencil' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-white/5'}`}
+                className={`p-2 rounded-xl transition-all flex items-center justify-center ${drawMode === 'pencil' ? 'bg-[#f1f5f9] text-purple-600 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff]' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Freehand Pencil"
              >
-               <Pencil size={18} className="text-blue-500" />
+               <Pencil size={18} className={drawMode === 'pencil' ? "text-purple-600" : ""} />
              </button>
              
-             <div className="w-[1px] h-6 bg-white/10 mx-1"></div>
+             <div className="w-[2px] h-6 bg-slate-200 mx-1 rounded-full"></div>
              
-             <button onClick={undoLastAnnotation} disabled={annotations.length === 0} className="p-2 text-gray-400 hover:text-white disabled:opacity-30">
-               <Undo2 size={16} />
+             <button onClick={undoLastAnnotation} disabled={annotations.length === 0} className="p-2 rounded-xl text-slate-400 hover:text-slate-800 disabled:opacity-30 transition-colors">
+               <Undo2 size={18} />
              </button>
           </div>
 
-          <div className="flex gap-2 hidden xl:flex">
-            <button onClick={() => setZoom(z => Math.max(50, z - 10))} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400"><ZoomOut size={16} /></button>
-            <span className="px-1 py-1 text-xs text-gray-500 flex items-center font-mono w-10 justify-center">{zoom}%</span>
-            <button onClick={() => setZoom(z => Math.min(200, z + 10))} className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400"><ZoomIn size={16} /></button>
+          <div className="flex gap-2 hidden xl:flex items-center">
+            <button onClick={() => setZoom(z => Math.max(50, z - 10))} className="p-2 bg-[#f1f5f9] hover:text-slate-800 rounded-xl text-slate-500 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all"><ZoomOut size={18} /></button>
+            <span className="px-2 py-1 text-sm text-slate-600 font-bold font-mono w-14 text-center">{zoom}%</span>
+            <button onClick={() => setZoom(z => Math.min(200, z + 10))} className="p-2 bg-[#f1f5f9] hover:text-slate-800 rounded-xl text-slate-500 shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all"><ZoomIn size={18} /></button>
           </div>
         </div>
         
-        <div className="flex-1 overflow-auto bg-black/50 p-4 flex items-start justify-center relative">
+        <div className="flex-1 overflow-auto bg-[#e2e8f0] p-6 flex items-start justify-center relative shadow-[inset_10px_10px_20px_#cbd5e1,inset_-10px_-10px_20px_#ffffff]">
           
           <div 
             ref={containerRef}
             style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s' }} 
-            className="w-full max-w-4xl min-h-[1000px] h-auto relative origin-top bg-white rounded-xl shadow-2xl"
+            className="w-full max-w-4xl min-h-[1000px] h-auto relative origin-top bg-white rounded-xl shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]"
           >
             {/* DOCUMENT RENDERER */}
             {isPdf ? (
@@ -391,8 +384,8 @@ const fetchData = async () => {
                 <Document
                   file={fileUrl}
                   onLoadSuccess={onDocumentLoadSuccess}
-                  loading={<div className="p-10 text-cyan-600 font-bold animate-pulse text-xl">Loading PDF Pages...</div>}
-                  error={<div className="p-10 text-red-500 font-bold">Failed to load PDF!</div>}
+                  loading={<div className="p-10 text-blue-600 font-black animate-pulse text-xl">Loading PDF Pages...</div>}
+                  error={<div className="p-10 text-red-500 font-black">Failed to load PDF!</div>}
                 >
                   {Array.from(new Array(numPages), (el, index) => (
                     <Page 
@@ -464,7 +457,7 @@ const fetchData = async () => {
 
             {/* MESSAGE OVERLAY FOR SCROLLING */}
             {drawMode !== 'scroll' && isPdf && (
-               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur pointer-events-none shadow-xl border border-white/10 z-20">
+               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#f1f5f9]/90 text-slate-800 px-6 py-3 rounded-full text-sm font-black backdrop-blur-md pointer-events-none shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] border border-white/80 z-20">
                  {drawMode === 'pencil' ? 'Click and drag to draw.' : `Click anywhere to drop ${drawMode === 'tick' ? 'a tick' : 'a cross'}.`} Switch to Scroll mode to scroll.
                </div>
             )}
@@ -473,20 +466,20 @@ const fetchData = async () => {
       </div>
 
       {/* 3. RIGHT PANEL: Evaluation Form */}
-      <div className={`w-full ${showQPaper ? 'lg:w-[30%]' : 'lg:w-1/2'} h-auto lg:h-full flex flex-col bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl shadow-2xl overflow-hidden transition-all shrink-0`}>
+      <div className={`w-full ${showQPaper ? 'lg:w-[30%]' : 'lg:w-1/2'} h-auto lg:h-full flex flex-col bg-[#f1f5f9] border border-white/80 rounded-[3rem] shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] overflow-hidden transition-all shrink-0`}>
         
         {/* Header */}
-        <div className="px-5 py-4 border-b border-white/10 bg-slate-900/50 shrink-0 flex justify-between items-center">
+        <div className="px-6 py-5 border-b border-white/60 bg-[#f1f5f9] shrink-0 flex justify-between items-center shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] rounded-t-[3rem] z-10">
           <div>
-            <h2 className="text-xl font-black text-white">Grading Form</h2>
+            <h2 className="text-2xl font-black text-slate-800">Grading Form</h2>
           </div>
           <div className="text-right flex flex-col items-end">
-            <div className="flex items-baseline gap-1">
-              <div className="text-2xl font-black text-cyan-400">{evaluation.totalMarks}</div>
-              <div className="text-sm text-gray-500 font-bold">/ {sheet.questionPaper?.totalMarks}</div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-black text-blue-600">{evaluation.totalMarks}</div>
+              <div className="text-sm text-slate-500 font-bold">/ {sheet.questionPaper?.totalMarks}</div>
             </div>
             {evaluation.questionWiseMarks.reduce((sum, q) => sum + (Number(q.obtainedMarks) || 0), 0) > (evaluation.totalMarks || 0) && (
-              <div className="text-[10px] text-orange-400 font-bold bg-orange-500/20 px-2 py-0.5 rounded-full mt-1 border border-orange-500/30">
+              <div className="text-xs text-orange-600 font-bold bg-[#f1f5f9] px-3 py-1 rounded-xl mt-1 shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff]">
                 Best N Applied
               </div>
             )}
@@ -494,38 +487,38 @@ const fetchData = async () => {
         </div>
 
         {/* Form Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {evaluation.questionWiseMarks.length === 0 ? (
-            <div className="bg-red-500/10 border border-red-500/30 p-5 rounded-2xl text-center shadow-lg">
-              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-              <h3 className="text-red-400 font-bold text-lg mb-1">No Questions Found</h3>
-              <p className="text-red-300 text-sm leading-relaxed">
+            <div className="bg-[#f1f5f9] p-6 rounded-3xl text-center shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4 drop-shadow-md" />
+              <h3 className="text-red-500 font-black text-xl mb-2">No Questions Found</h3>
+              <p className="text-red-400 font-medium text-sm leading-relaxed">
                 The attached Question Paper does not have any saved questions in the database. Please inform the Admin to upload and save questions for this paper so you can grade them.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {evaluation.questionWiseMarks.map((qm, idx) => (
-                <div key={qm.questionId} className={`bg-slate-900/60 border border-white/5 rounded-2xl p-3 transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80 ${qm.isNotAttempted ? 'opacity-60' : ''}`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="font-bold text-cyan-400 text-base">Q{qm.questionNo}.</div>
+                <div key={qm.questionId} className={`bg-[#f1f5f9] rounded-[2rem] p-4 transition-all shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] ${qm.isNotAttempted ? 'opacity-60' : ''}`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="font-black text-blue-600 text-lg">Q{qm.questionNo}.</div>
                       <button
                         onClick={() => handleNotAttemptedToggle(idx)}
-                        className={`text-[10px] px-2 py-1 rounded-md font-bold transition ${qm.isNotAttempted ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-slate-800 text-gray-500 border border-white/5 hover:bg-slate-700'}`}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] ${qm.isNotAttempted ? 'bg-[#f1f5f9] text-orange-500' : 'bg-[#f1f5f9] text-slate-500 hover:text-slate-700'}`}
                       >
                         {qm.isNotAttempted ? 'Not Attempted' : 'Mark NA'}
                       </button>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <input 
                         type="number" min="0" max={qm.maxMarks} step="0.5"
                         value={qm.obtainedMarks}
                         disabled={qm.isNotAttempted}
                         onChange={(e) => handleMarkChange(idx, "obtainedMarks", e.target.value)}
-                        className={`w-16 bg-slate-950 border border-white/10 rounded-lg py-1.5 px-2 text-center text-white font-bold focus:ring-2 focus:ring-cyan-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-20 bg-[#f1f5f9] border-none rounded-xl py-2 px-2 text-center text-slate-800 font-black shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] focus:ring-2 focus:ring-blue-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
                       />
-                      <span className="text-gray-500 text-sm font-bold">/ {qm.maxMarks}</span>
+                      <span className="text-slate-500 text-sm font-bold">/ {qm.maxMarks}</span>
                     </div>
                   </div>
                   <input 
@@ -534,40 +527,35 @@ const fetchData = async () => {
                     value={qm.comment}
                     disabled={qm.isNotAttempted}
                     onChange={(e) => handleMarkChange(idx, "comment", e.target.value)}
-                    className={`w-full bg-slate-950/50 border border-white/5 rounded-lg p-2 text-xs text-gray-300 focus:ring-1 focus:ring-cyan-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full bg-[#f1f5f9] border-none rounded-xl p-3 text-sm text-slate-700 font-medium shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] focus:ring-2 focus:ring-blue-500 focus:outline-none ${qm.isNotAttempted ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
               ))}
             </div>
           )}
 
-          <div className="pt-3 border-t border-white/5">
-            <label className="block text-xs font-bold text-gray-300 mb-1">Overall Comments</label>
+          <div className="pt-4 border-t border-white/60">
+            <label className="block text-sm font-black text-slate-600 mb-2">Overall Comments</label>
             <textarea 
               value={evaluation.overallComments}
               onChange={(e) => setEvaluation({...evaluation, overallComments: e.target.value})}
               rows="3"
-              className="w-full bg-slate-900/60 border border-white/5 rounded-2xl p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none text-sm"
+              className="w-full bg-[#f1f5f9] border-none rounded-2xl p-4 text-slate-700 font-medium shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none text-sm"
               placeholder="Provide overall feedback..."
             />
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 border-t border-white/10 bg-slate-900/80 shrink-0 grid grid-cols-3 gap-2">
-          <button onClick={handleRunAI} disabled={runningAI} className="flex flex-col items-center justify-center gap-1 py-2 rounded-xl bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 disabled:opacity-50">
-            {runningAI ? <Loader2 className="animate-spin" size={16} /> : <Brain size={16} />}
-            <span className="text-[10px] font-semibold uppercase tracking-wider">AI Assist</span>
+        <div className="p-5 border-t border-white/60 bg-[#f1f5f9] shrink-0 grid grid-cols-2 gap-4 rounded-b-[3rem] shadow-[inset_0px_10px_20px_-10px_#cbd5e1] z-10">
+          <button onClick={handleSaveDraft} disabled={saving} className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl bg-[#f1f5f9] text-blue-600 hover:text-blue-700 font-bold shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all disabled:opacity-50">
+            {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+            <span className="text-xs uppercase tracking-wider">Save Draft</span>
           </button>
           
-          <button onClick={handleSaveDraft} disabled={saving} className="flex flex-col items-center justify-center gap-1 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 disabled:opacity-50">
-            {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Save Draft</span>
-          </button>
-          
-          <button onClick={handleSubmit} disabled={submitting} className="flex flex-col items-center justify-center gap-1 py-2 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white hover:scale-[1.02] transition-transform shadow-lg shadow-green-500/20 disabled:opacity-50">
-            {submitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-            <span className="text-[10px] font-bold uppercase tracking-wider">Submit</span>
+          <button onClick={handleSubmit} disabled={submitting} className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl bg-blue-500 text-white hover:bg-blue-600 font-bold shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] transition-all disabled:opacity-50">
+            {submitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+            <span className="text-xs uppercase tracking-wider">Submit</span>
           </button>
         </div>
       </div>

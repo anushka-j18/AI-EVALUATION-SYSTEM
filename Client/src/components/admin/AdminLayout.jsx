@@ -31,102 +31,53 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex overflow-hidden">
-      {/* Background elements */}
-      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-red-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-orange-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-
-      {/* Admin Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-slate-950/80 backdrop-blur-xl border-r border-red-500/20 z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
-      >
-        <div className="h-20 flex items-center px-6 border-b border-white/10 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20 mr-3">
-            <ShieldCheck className="text-white" size={20} />
+    <div className="min-h-screen text-slate-800 overflow-x-hidden relative flex flex-col" style={{ 
+      backgroundColor: '#f8fafc',
+      backgroundImage: `
+        radial-gradient(at 0% 0%, hsla(210, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(190, 100%, 92%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(250, 100%, 96%, 1) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, hsla(200, 100%, 93%, 1) 0px, transparent 50%)
+      `
+    }}>
+      {/* Floating Pill Navbar */}
+      <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-5xl">
+        <nav className="bg-[#f1f5f9]/70 backdrop-blur-xl border border-white/60 rounded-[3rem] p-2 flex items-center justify-between shadow-[15px_15px_30px_#cbd5e1,-15px_-15px_30px_#ffffff] overflow-x-auto no-scrollbar">
+          
+          <div className="flex items-center gap-4 lg:gap-8">
+            <div className="w-14 h-14 bg-[#f1f5f9] rounded-full flex items-center justify-center shrink-0 ml-1"
+                 style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}>
+              <ShieldCheck className="text-blue-500" size={28} />
+            </div>
+            
+            <div className="flex items-center gap-1 lg:gap-2 text-[14px] lg:text-[15px] font-medium whitespace-nowrap">
+              <NavLink to="/admin" end className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Dashboard</NavLink>
+              <NavLink to="/admin/teachers" className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Teachers</NavLink>
+              <NavLink to="/admin/assign" className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Assign Scripts</NavLink>
+              <NavLink to="/upload-question-paper" className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Q. Paper</NavLink>
+              <NavLink to="/admin/upload-answer-sheet" className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Ans. Sheet</NavLink>
+              <NavLink to="/admin/results" className={({isActive}) => isActive ? "text-blue-600 bg-[#f1f5f9] px-4 py-2 rounded-full font-bold shadow-[inset_3px_3px_6px_#cbd5e1,inset_-3px_-3px_6px_#ffffff] transition-all" : "text-slate-500 hover:text-blue-500 px-4 py-2 rounded-full transition-all"}>Results</NavLink>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-black text-white leading-none">DES Admin</h1>
-            <p className="text-xs text-red-400 font-medium">Control Panel</p>
-          </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-          <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Management
-          </p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              end={item.exact}
-              onClick={() => {
-                if (window.innerWidth < 1024) toggleSidebar();
-              }}
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-red-500/10 text-red-400 border-l-4 border-red-500"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent"
-                }`
-              }
-            >
-              {item.icon}
-              <span className="ml-3 font-medium">{item.name}</span>
-            </NavLink>
-          ))}
-        </div>
-
-        <div className="p-4 border-t border-white/10 shrink-0">
-          <button
-            onClick={logout}
-            className="w-full flex items-center px-4 py-3 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+          <button onClick={logout} 
+            className="bg-[#f1f5f9] text-blue-600 px-6 lg:px-8 py-3 lg:py-4 rounded-[2.5rem] font-bold text-[14px] lg:text-[15px] flex items-center gap-2 transition-all shrink-0 mr-1"
+            style={{ boxShadow: "6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff" }}
+            onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff"}
+            onMouseUp={(e) => e.currentTarget.style.boxShadow = "6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff"}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = "6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff"}
           >
-            <LogOut size={20} />
-            <span className="ml-3 font-medium">Logout Admin</span>
+            {admin?.email || "admin@des.edu"}
           </button>
-        </div>
-      </aside>
 
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-          onClick={toggleSidebar}
-        />
-      )}
+        </nav>
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64 transition-all duration-300">
-        <header className="sticky top-0 z-40 bg-slate-950/60 backdrop-blur-xl border-b border-red-500/10 h-20 px-6 flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              onClick={toggleSidebar}
-              className="lg:hidden mr-4 p-2 rounded-lg bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Menu size={24} />
-            </button>
-            <h2 className="text-2xl font-bold text-white hidden sm:block">
-              {getPageTitle()}
-            </h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-white">{admin?.name}</p>
-              <p className="text-xs text-red-400">Administrator</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 p-0.5">
-              <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center border-2 border-slate-900">
-                <span className="text-xs font-bold text-white">AD</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8">
-          <Outlet />
-        </main>
-      </div>
+      <main className="pt-40 pb-8 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full flex-1">
+        <Outlet />
+      </main>
     </div>
   );
 };

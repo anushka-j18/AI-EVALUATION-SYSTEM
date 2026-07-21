@@ -19,11 +19,15 @@ import {
   MapPin,
   BrainCircuit,
   Library,
-  GraduationCap
+  GraduationCap,
+  Briefcase,
+  BookOpen,
+  Shield
 } from "lucide-react";
 
 function Dashboard() {
   const [activeView, setActiveView] = useState("teacher"); // "teacher" or "student"
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   return (
     <div className="w-full h-screen bg-gray-200 p-4 sm:p-6 flex gap-4 overflow-hidden relative">
@@ -141,9 +145,9 @@ function Dashboard() {
 
               {/* Right Button Container */}
               <div className="h-[120px] flex items-center">
-                <Link to="/login" className="bg-slate-100 hover:bg-slate-200 transition rounded-full px-6 py-2.5 lg:px-7 lg:py-3 flex items-center gap-2 font-bold text-slate-900 text-sm shadow-sm border border-slate-200">
+                <button onClick={() => setIsLoginModalOpen(true)} className="bg-slate-100 hover:bg-slate-200 transition rounded-full px-6 py-2.5 lg:px-7 lg:py-3 flex items-center gap-2 font-bold text-slate-900 text-sm shadow-sm border border-slate-200">
                   Login <ArrowUpRight size={16} className="text-slate-500" />
-                </Link>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -295,6 +299,106 @@ function Dashboard() {
           </AnimatePresence>
           
         </div>
+
+        {/* Login Modal */}
+        <AnimatePresence>
+          {isLoginModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-md p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-md p-8 rounded-[2.5rem] bg-[#f1f5f9] border border-white/80"
+                style={{
+                  boxShadow: "20px 20px 40px #cbd5e1, -20px -20px 40px #ffffff",
+                }}
+              >
+                <button 
+                  onClick={() => setIsLoginModalOpen(false)}
+                  className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-[#f1f5f9] text-slate-500 hover:text-slate-800 transition-all"
+                  style={{
+                    boxShadow: "5px 5px 10px #cbd5e1, -5px -5px 10px #ffffff",
+                  }}
+                  onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 3px 3px 6px #cbd5e1, inset -3px -3px 6px #ffffff"}
+                  onMouseUp={(e) => e.currentTarget.style.boxShadow = "5px 5px 10px #cbd5e1, -5px -5px 10px #ffffff"}
+                  onMouseLeave={(e) => e.currentTarget.style.boxShadow = "5px 5px 10px #cbd5e1, -5px -5px 10px #ffffff"}
+                >
+                  <span className="text-xl font-bold leading-none mb-[2px]">×</span>
+                </button>
+
+                <div className="text-center mb-8 mt-2">
+                  <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-2">Welcome</h2>
+                  <p className="text-slate-500 text-sm font-medium">Select your role to continue</p>
+                </div>
+
+                <div className="flex flex-col gap-5">
+                  <Link 
+                    to="/login?role=teacher"
+                    className="group relative flex items-center p-5 rounded-2xl bg-[#f1f5f9] transition-all duration-300"
+                    style={{
+                      boxShadow: "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff",
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 6px 6px 12px #cbd5e1, inset -6px -6px 12px #ffffff"}
+                    onMouseUp={(e) => e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff"}
+                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff"}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-[#f1f5f9] flex items-center justify-center mr-4 group-hover:scale-110 transition-transform"
+                         style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}>
+                      <Briefcase size={22} className="text-blue-500/80 drop-shadow-sm" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-bold text-slate-800">Teacher Login</h3>
+                      <p className="text-xs text-slate-500 font-medium">Access dashboard & evaluation</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-400 group-hover:text-blue-500 transition-colors"
+                         style={{ boxShadow: "inset 2px 2px 5px #cbd5e1, inset -2px -2px 5px #ffffff" }}>
+                      <ArrowUpRight size={16} />
+                    </div>
+                  </Link>
+
+                  <Link 
+                    to="/login?role=student"
+                    className="group relative flex items-center p-5 rounded-2xl bg-[#f1f5f9] transition-all duration-300"
+                    style={{
+                      boxShadow: "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff",
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 6px 6px 12px #cbd5e1, inset -6px -6px 12px #ffffff"}
+                    onMouseUp={(e) => e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff"}
+                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff"}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-[#f1f5f9] flex items-center justify-center mr-4 group-hover:scale-110 transition-transform"
+                         style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}>
+                      <BookOpen size={22} className="text-cyan-500/80 drop-shadow-sm" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-bold text-slate-800">Student Login</h3>
+                      <p className="text-xs text-slate-500 font-medium">View results & analytics</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-slate-400 group-hover:text-cyan-500 transition-colors"
+                         style={{ boxShadow: "inset 2px 2px 5px #cbd5e1, inset -2px -2px 5px #ffffff" }}>
+                      <ArrowUpRight size={16} />
+                    </div>
+                  </Link>
+                </div>
+
+                <div className="mt-6 flex justify-center">
+                  <Link 
+                    to="/login?role=admin"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#f1f5f9] text-xs font-bold text-slate-500 hover:text-slate-800 transition-all"
+                    style={{
+                      boxShadow: "4px 4px 8px #cbd5e1, -4px -4px 8px #ffffff",
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 2px 2px 4px #cbd5e1, inset -2px -2px 4px #ffffff"}
+                    onMouseUp={(e) => e.currentTarget.style.boxShadow = "4px 4px 8px #cbd5e1, -4px -4px 8px #ffffff"}
+                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = "4px 4px 8px #cbd5e1, -4px -4px 8px #ffffff"}
+                  >
+                    <Shield size={14} className="opacity-70" /> Admin Access
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }

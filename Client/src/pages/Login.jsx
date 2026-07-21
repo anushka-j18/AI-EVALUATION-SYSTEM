@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAdminAuth } from "../context/AdminContext";
 import { Sparkles, Loader2, Mail, Lock, ArrowLeft, User, Building, Briefcase, Eye, EyeOff } from "lucide-react";
 import api from "../api/axiosConfig";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get("role") || "teacher"; // "teacher", "student", or "admin"
+
   const [mode, setMode] = useState("login"); // "login", "signup", "verify-signup", "forgot-password", "reset-password"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +22,7 @@ const Login = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login: teacherLogin, register, verifyRegistration, forgotPassword, resetPassword } = useAuth();
+  const { login: teacherLogin, register, verifyRegistration, forgotPassword, verifyResetOtp, resetPassword } = useAuth();
   const { login: adminLogin } = useAdminAuth();
   const navigate = useNavigate();
 
@@ -42,10 +45,14 @@ const Login = () => {
 
     try {
       if (mode === "login") {
-        if (email === "admin@gmail.com") {
+        if (role === "admin") {
           const result = await adminLogin(email, password);
           if (result.success) navigate("/admin");
-          else setError(result.message);
+          else setError(result.message || "Admin login failed.");
+        } else if (role === "student") {
+          // Assuming student authentication logic is handled or to be implemented here
+          // For now, if no student backend, show message or mock login
+          setError("Student portal is currently under construction.");
         } else {
           const result = await teacherLogin(email, password);
           if (result.success) {
@@ -54,7 +61,6 @@ const Login = () => {
             setError(result.message);
             if (result.notActive) {
               setMode("verify-signup");
-              // Try to resend OTP implicitly or just show verify screen
               setSuccessMsg("Your account is not active. Please enter the OTP sent to your email. If you need a new OTP, try signing up again or resetting password.");
             }
           }
@@ -79,7 +85,7 @@ const Login = () => {
         const result = await forgotPassword(email);
         if (result.success) {
           setSuccessMsg(result.message || "OTP sent to your email.");
-          setMode("reset-password");
+          setMode("verify-reset-otp");
         } else {
           // If teacher reset fails, try admin fallback (legacy behavior, though Admin OTP isn't implemented fully in backend)
           try {
@@ -88,6 +94,14 @@ const Login = () => {
           } catch (err) {
             setError(result.message || "Failed to send reset OTP.");
           }
+        }
+      } else if (mode === "verify-reset-otp") {
+        const result = await verifyResetOtp(email, otp);
+        if (result.success) {
+          setSuccessMsg("OTP verified! Please enter your new password.");
+          setMode("reset-password");
+        } else {
+          setError(result.message);
         }
       } else if (mode === "reset-password") {
         const result = await resetPassword(email, otp, password); // password field holds newPassword
@@ -106,50 +120,69 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 blur-[100px] rounded-full pointer-events-none" />
-
-      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-[2rem] p-8 backdrop-blur-xl shadow-2xl z-10 relative">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ 
+      backgroundColor: '#f8fafc',
+      backgroundImage: `
+        radial-gradient(at 0% 0%, hsla(210, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(190, 100%, 92%, 1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(250, 100%, 96%, 1) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, hsla(200, 100%, 93%, 1) 0px, transparent 50%)
+      `
+    }}>
+      <div className="w-full max-w-md bg-[#f1f5f9] border border-white/80 rounded-[2.5rem] p-8 z-10 relative"
+           style={{
+             boxShadow: "20px 20px 40px #cbd5e1, -20px -20px 40px #ffffff",
+           }}>
+        
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 mb-4">
-            <Sparkles size={32} className="text-white" />
+          <div className="w-16 h-16 rounded-2xl bg-[#f1f5f9] flex items-center justify-center mb-4"
+               style={{ boxShadow: "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff" }}>
+            <Sparkles size={32} className="text-blue-500" />
           </div>
-          <h1 className="text-3xl font-black text-white text-center">
-            {mode === "login" && "Welcome Back"}
+          <h1 className="text-3xl font-black text-slate-800 text-center tracking-tight">
+            {mode === "login" && role === "teacher" && "Teacher Login"}
+            {mode === "login" && role === "student" && "Student Login"}
+            {mode === "login" && role === "admin" && "Admin Login"}
             {mode === "signup" && "Create Account"}
-            {(mode === "verify-signup" || mode === "reset-password") && "Verify OTP"}
+            {(mode === "verify-signup" || mode === "verify-reset-otp") && "Verify OTP"}
             {mode === "forgot-password" && "Reset Password"}
+            {mode === "reset-password" && "Change Password"}
           </h1>
-          <p className="text-gray-400 mt-2 text-center text-sm">
-            {mode === "login" && "Sign in to continue to the Digital Evaluation System"}
+          <p className="text-slate-500 mt-2 text-center text-sm font-medium">
+            {mode === "login" && role === "teacher" && "Sign in to access your teaching dashboard"}
+            {mode === "login" && role === "student" && "Sign in to view your academic results"}
+            {mode === "login" && role === "admin" && "Sign in to manage the Digital Evaluation System"}
             {mode === "signup" && "Register to join as an Evaluator"}
-            {mode === "verify-signup" && `Enter the 6-digit code sent to ${email}`}
+            {(mode === "verify-signup" || mode === "verify-reset-otp") && `Enter the 6-digit code sent to ${email}`}
             {mode === "forgot-password" && "Enter your email to receive an OTP"}
-            {mode === "reset-password" && "Enter your OTP and a new password"}
+            {mode === "reset-password" && "Enter your new password"}
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm mb-6 text-center">
+          <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm mb-6 text-center shadow-inner border border-red-100">
             {error}
           </div>
         )}
 
         {successMsg && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl text-sm mb-6 text-center">
+          <div className="bg-green-50 text-green-500 p-4 rounded-xl text-sm mb-6 text-center shadow-inner border border-green-100">
             {successMsg}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Email Field - Used in almost all modes except verify-signup/reset-password if we already have it (but we show it disabled to be clear) */}
-          <div className={mode === "verify-signup" || mode === "reset-password" ? "hidden" : "block"}>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
+          {/* Email Field */}
+          <div className={mode === "verify-signup" || mode === "verify-reset-otp" || mode === "reset-password" ? "hidden" : "block"}>
+            <label className="block text-sm font-bold text-slate-600 mb-2">Email Address</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail size={18} className="text-gray-500" /></div>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={mode === 'verify-signup' || mode === 'reset-password'} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600 disabled:opacity-50" placeholder="teacher@institute.edu" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail size={18} className="text-slate-400" /></div>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={mode === 'verify-signup' || mode === 'verify-reset-otp' || mode === 'reset-password'} 
+                     className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400 disabled:opacity-50" 
+                     style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                     placeholder="name@institute.edu" />
             </div>
           </div>
 
@@ -157,36 +190,48 @@ const Login = () => {
           {mode === "signup" && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Full Name</label>
+                <label className="block text-sm font-bold text-slate-600 mb-2">Full Name</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><User size={18} className="text-gray-500" /></div>
-                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="John Doe" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><User size={18} className="text-slate-400" /></div>
+                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} 
+                         className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400" 
+                         style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                         placeholder="John Doe" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Department</label>
+                <label className="block text-sm font-bold text-slate-600 mb-2">Department</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Building size={18} className="text-gray-500" /></div>
-                  <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="Computer Science" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Building size={18} className="text-slate-400" /></div>
+                  <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} 
+                         className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400" 
+                         style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                         placeholder="Computer Science" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Employee ID</label>
+                <label className="block text-sm font-bold text-slate-600 mb-2">Employee ID</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Briefcase size={18} className="text-gray-500" /></div>
-                  <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="FAC-12345" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Briefcase size={18} className="text-slate-400" /></div>
+                  <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} 
+                         className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400" 
+                         style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                         placeholder="FAC-12345" />
                 </div>
               </div>
             </>
           )}
 
           {/* OTP Field */}
-          {(mode === "verify-signup" || mode === "reset-password") && (
+          {(mode === "verify-signup" || mode === "verify-reset-otp") && (
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">6-Digit OTP</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">6-Digit OTP</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock size={18} className="text-gray-500" /></div>
-                <input type="text" required maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600 tracking-widest font-mono text-center" placeholder="123456" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock size={18} className="text-slate-400" /></div>
+                <input type="text" required maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value)} 
+                       className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-4 text-slate-800 focus:outline-none transition-all placeholder-slate-400 tracking-widest font-mono text-center" 
+                       style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                       placeholder="123456" />
               </div>
             </div>
           )}
@@ -194,32 +239,44 @@ const Login = () => {
           {/* Password Field */}
           {(mode === "login" || mode === "signup" || mode === "reset-password") && (
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-400">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-bold text-slate-600">
                   {mode === "reset-password" ? "New Password" : "Password"}
                 </label>
                 {mode === "login" && (
-                  <button type="button" onClick={() => handleModeChange("forgot-password")} className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
+                  <button type="button" onClick={() => handleModeChange("forgot-password")} className="text-xs text-blue-500 hover:text-blue-600 font-bold transition-colors">
                     Forgot Password?
                   </button>
                 )}
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock size={18} className="text-gray-500" /></div>
-                <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-900/70 border border-white/10 rounded-xl py-3 pl-11 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all placeholder-gray-600" placeholder="••••••••" minLength={6} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-300">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock size={18} className="text-slate-400" /></div>
+                <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} 
+                       className="w-full bg-[#f1f5f9] rounded-xl py-3 pl-11 pr-10 text-slate-800 focus:outline-none transition-all placeholder-slate-400" 
+                       style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}
+                       placeholder="••••••••" minLength={6} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
           )}
 
-          <button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:scale-[1.02] transition-transform shadow-lg shadow-cyan-500/25 flex items-center justify-center mt-4 disabled:opacity-70 disabled:hover:scale-100">
-            {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : (
+          <button type="submit" disabled={isSubmitting} 
+            className="w-full py-4 rounded-xl bg-[#f1f5f9] text-blue-600 font-black transition-all flex items-center justify-center mt-8 disabled:opacity-70 disabled:hover:scale-100"
+            style={{
+              boxShadow: "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff"
+            }}
+            onMouseDown={(e) => !isSubmitting && (e.currentTarget.style.boxShadow = "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff")}
+            onMouseUp={(e) => !isSubmitting && (e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff")}
+            onMouseLeave={(e) => !isSubmitting && (e.currentTarget.style.boxShadow = "8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff")}
+          >
+            {isSubmitting ? <Loader2 className="animate-spin text-blue-500" size={24} /> : (
               mode === "login" ? "Sign In" :
               mode === "signup" ? "Create Account" :
               mode === "verify-signup" ? "Verify & Activate" :
               mode === "forgot-password" ? "Send Reset OTP" :
+              mode === "verify-reset-otp" ? "Verify OTP" :
               "Update Password"
             )}
           </button>
@@ -228,7 +285,7 @@ const Login = () => {
         {/* Mode Toggles */}
         <div className="mt-6 flex flex-col gap-3">
           {mode !== "login" && (
-            <button type="button" onClick={() => handleModeChange("login")} className="w-full text-sm text-gray-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
+            <button type="button" onClick={() => handleModeChange("login")} className="w-full text-sm font-bold text-slate-400 hover:text-slate-600 flex items-center justify-center gap-2 transition-colors">
               <ArrowLeft size={16} /> Back to Login
             </button>
           )}

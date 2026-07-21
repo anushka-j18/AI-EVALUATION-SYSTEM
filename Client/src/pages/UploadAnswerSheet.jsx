@@ -110,33 +110,30 @@ function UploadAnswerSheet() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white overflow-hidden relative p-6 lg:p-12">
-      <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-green-500/10 blur-3xl rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-
+    <div className="min-h-screen text-slate-800 overflow-hidden relative p-6 lg:p-12">
       <div className="relative z-10 max-w-5xl mx-auto">
         <div className="mb-10 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/20">
+          <div className="w-20 h-20 rounded-3xl bg-[#f1f5f9] flex items-center justify-center shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] text-blue-600">
             <Sparkles size={38} />
           </div>
           <div>
-            <h1 className="text-5xl font-black">Bulk Upload Answer Sheets</h1>
-            <p className="text-gray-400 mt-2 text-lg">
+            <h1 className="text-5xl font-black text-slate-800">Bulk Upload Answer Sheets</h1>
+            <p className="text-slate-500 mt-2 text-lg font-medium">
               Upload multiple student answer scripts simultaneously for evaluation.
             </p>
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-[32px] backdrop-blur-xl p-8 shadow-2xl">
+        <div className="bg-[#f1f5f9] border border-white/80 rounded-[3rem] p-8 md:p-12 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
           {/* Question Paper Selection */}
-          <div className="mb-8">
-            <label className="flex items-center gap-2 text-gray-300 mb-3">
+          <div className="mb-10">
+            <label className="flex items-center gap-2 text-slate-600 font-bold mb-4">
               <FileText size={18} /> Link all uploads to Question Paper:
             </label>
             <select
               value={questionPaperId}
               onChange={(e) => setQuestionPaperId(e.target.value)}
-              className="w-full bg-slate-900/70 border border-white/10 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-green-500 text-white"
+              className="w-full bg-[#f1f5f9] border border-white/60 rounded-[1.5rem] p-5 text-slate-800 focus:outline-none shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
             >
               {questionPapers.length === 0 ? (
                 <option value="">No Question Papers Found (Upload one first!)</option>
@@ -151,8 +148,8 @@ function UploadAnswerSheet() {
           </div>
 
           {/* FILE UPLOAD ZONE */}
-          <div className="mb-8">
-            <label className="block text-gray-300 mb-4">Select Files (You can select multiple)</label>
+          <div className="mb-10">
+            <label className="block text-slate-600 font-bold mb-4">Select Files (You can select multiple)</label>
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -160,14 +157,16 @@ function UploadAnswerSheet() {
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-3xl p-12 text-center transition-all cursor-pointer ${
-                dragging ? "border-green-400 bg-green-500/10" : "border-white/10 bg-slate-900/40 hover:bg-slate-900/60"
+              className={`border-[3px] border-dashed rounded-[2.5rem] p-12 text-center transition-all cursor-pointer ${
+                dragging ? "border-blue-400 bg-blue-500/5 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]" : "border-slate-300 bg-[#f1f5f9] hover:border-blue-400/50 shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]"
               }`}
             >
-              <UploadCloud size={70} className="mx-auto text-green-400 mb-5" />
-              <h2 className="text-2xl font-bold">Drag & Drop Files Here</h2>
-              <p className="text-gray-400 mt-3">PDF, PNG, JPG Supported</p>
-              <label className="mt-6 inline-block bg-white/10 hover:bg-white/20 px-6 py-2 rounded-xl cursor-pointer transition-colors">
+              <div className="w-24 h-24 rounded-full bg-[#f1f5f9] shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff] flex items-center justify-center mx-auto mb-6 text-blue-600">
+                <UploadCloud size={40} />
+              </div>
+              <h2 className="text-2xl font-black text-slate-800">Drag & Drop Files Here</h2>
+              <p className="text-slate-500 font-medium mt-3">PDF, PNG, JPG Supported</p>
+              <label className="mt-8 inline-block bg-[#f1f5f9] text-blue-600 font-bold px-8 py-3 rounded-full cursor-pointer transition-all shadow-[6px_6px_12px_#cbd5e1,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff]">
                 Browse Files
                 <input
                   type="file"
@@ -182,54 +181,54 @@ function UploadAnswerSheet() {
 
           {/* FILES LIST TABLE */}
           {filesData.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-xl font-bold mb-4 flex items-center justify-between">
+            <div className="mb-10">
+              <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center justify-between">
                 <span>Selected Files ({filesData.length})</span>
-                <button onClick={() => setFilesData([])} className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1">
+                <button onClick={() => setFilesData([])} className="text-sm font-bold text-red-500 hover:text-red-400 flex items-center gap-1 transition-colors">
                   <Trash2 size={16} /> Clear All
                 </button>
               </h3>
-              <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-700">
+              <div className="bg-[#f1f5f9] rounded-[2rem] overflow-hidden border border-white/80 shadow-[10px_10px_20px_#cbd5e1,-10px_-10px_20px_#ffffff]">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-800 text-gray-400 text-xs uppercase">
+                  <thead className="bg-white/40 text-slate-500 text-xs uppercase font-bold border-b border-white/60">
                     <tr>
-                      <th className="p-4 w-1/3">Filename</th>
-                      <th className="p-4 w-1/3">Student Name</th>
-                      <th className="p-4 w-1/4">Roll Number</th>
-                      <th className="p-4 text-center">Action</th>
+                      <th className="p-5 w-1/3">Filename</th>
+                      <th className="p-5 w-1/3">Student Name</th>
+                      <th className="p-5 w-1/4">Roll Number</th>
+                      <th className="p-5 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody className="divide-y divide-white/60">
                     {filesData.map((f) => (
-                      <tr key={f.id} className="hover:bg-slate-800/30">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-green-500/20 flex flex-shrink-0 items-center justify-center">
-                              <FileText size={14} className="text-green-400" />
+                      <tr key={f.id} className="hover:bg-white/40 transition-colors">
+                        <td className="p-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] flex flex-shrink-0 items-center justify-center">
+                              <FileText size={18} className="text-blue-600" />
                             </div>
-                            <span className="truncate text-sm" title={f.file.name}>{f.file.name}</span>
+                            <span className="truncate text-sm font-bold text-slate-700" title={f.file.name}>{f.file.name}</span>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-5">
                           <input 
                             type="text" 
                             placeholder="e.g. Jane Doe"
                             value={f.studentName}
                             onChange={(e) => updateFileData(f.id, 'studentName', e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm focus:border-green-500 outline-none"
+                            className="w-full bg-[#f1f5f9] border border-white/60 rounded-xl p-3 text-slate-800 focus:outline-none shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] placeholder-slate-400"
                           />
                         </td>
-                        <td className="p-4">
+                        <td className="p-5">
                           <input 
                             type="text" 
                             placeholder="e.g. CS2026001"
                             value={f.rollNumber}
                             onChange={(e) => updateFileData(f.id, 'rollNumber', e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm focus:border-green-500 outline-none"
+                            className="w-full bg-[#f1f5f9] border border-white/60 rounded-xl p-3 text-slate-800 focus:outline-none shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] placeholder-slate-400"
                           />
                         </td>
-                        <td className="p-4 text-center">
-                          <button onClick={() => removeFile(f.id)} className="text-gray-500 hover:text-red-400">
+                        <td className="p-5 text-center">
+                          <button onClick={() => removeFile(f.id)} className="w-10 h-10 rounded-full bg-[#f1f5f9] shadow-[4px_4px_8px_#cbd5e1,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_4px_#cbd5e1,inset_-2px_-2px_4px_#ffffff] flex items-center justify-center mx-auto text-red-500 hover:text-red-600 transition-all">
                             <Trash2 size={18} />
                           </button>
                         </td>
@@ -244,7 +243,7 @@ function UploadAnswerSheet() {
           <button
             onClick={uploadAnswerSheets}
             disabled={loading || questionPapers.length === 0 || filesData.length === 0}
-            className="w-full py-5 rounded-3xl bg-gradient-to-r from-green-500 to-emerald-600 text-xl font-bold hover:scale-[1.01] transition shadow-2xl shadow-green-500/20 disabled:opacity-50 flex justify-center items-center gap-2"
+            className="w-full py-5 rounded-[1.5rem] bg-[#f1f5f9] text-blue-600 text-xl font-black transition-all shadow-[8px_8px_16px_#cbd5e1,-8px_-8px_16px_#ffffff] active:shadow-[inset_4px_4px_8px_#cbd5e1,inset_-4px_-4px_8px_#ffffff] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
           >
             {loading ? <><Loader2 className="animate-spin" /> Uploading...</> : `Upload All ${filesData.length > 0 ? `(${filesData.length})` : ''} Scripts`}
           </button>

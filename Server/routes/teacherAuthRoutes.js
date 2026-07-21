@@ -250,6 +250,34 @@ router.post("/forgot-password", async (req, res) => {
 });
 
 // ============================
+// VERIFY RESET OTP
+// ============================
+router.post("/verify-reset-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: "Email and OTP are required." });
+    }
+
+    const teacher = await Teacher.findOne({ email });
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    if (teacher.otp !== otp || new Date() > new Date(teacher.otpExpiry)) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." });
+    }
+
+    res.status(200).json({ success: true, message: "OTP verified successfully." });
+  } catch (error) {
+    console.log("VERIFY RESET OTP ERROR:", error);
+    res.status(500).json({ success: false, message: "Verification failed." });
+  }
+});
+
+// ============================
 // RESET PASSWORD
 // ============================
 router.post("/reset-password", async (req, res) => {

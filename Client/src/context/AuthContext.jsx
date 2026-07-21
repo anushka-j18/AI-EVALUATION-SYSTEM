@@ -83,6 +83,18 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const verifyResetOtp = async (email, otp) => {
+    try {
+      const res = await api.post("/auth/verify-reset-otp", { email, otp });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Invalid or expired OTP",
+      };
+    }
+  }
+
   const resetPassword = async (email, otp, newPassword) => {
     try {
       const res = await api.post("/auth/reset-password", { email, otp, newPassword });
@@ -103,7 +115,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ teacher, loading, token, login, register, verifyRegistration, forgotPassword, resetPassword, logout, setTeacher }}
+      value={{ teacher, loading, token, login, register, verifyRegistration, forgotPassword, verifyResetOtp, resetPassword, logout, setTeacher }}
     >
       {children}
     </AuthContext.Provider>

@@ -5,26 +5,26 @@ import { useAdminAuth } from "../../context/AdminContext";
 
 const StatCard = ({ title, value, icon, color }) => {
   const colorMap = {
-    blue: "from-blue-500 to-indigo-500 text-blue-400 bg-blue-500/10",
-    red: "from-red-500 to-orange-500 text-red-400 bg-red-500/10",
-    green: "from-green-500 to-emerald-500 text-green-400 bg-green-500/10",
-    purple: "from-purple-500 to-fuchsia-500 text-purple-400 bg-purple-500/10",
-    cyan: "from-cyan-500 to-blue-500 text-cyan-400 bg-cyan-500/10",
-    orange: "from-orange-500 to-amber-500 text-orange-400 bg-orange-500/10",
+    blue: "text-blue-500",
+    red: "text-red-500",
+    green: "text-emerald-500",
+    purple: "text-purple-500",
+    cyan: "text-cyan-500",
+    orange: "text-orange-500",
   };
 
-  const sel = colorMap[color];
-  const textClass = sel.split(" ")[2];
-  const bgClass = sel.split(" ")[3];
+  const textClass = colorMap[color];
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl flex items-center gap-6 hover:bg-white/10 transition-colors">
-      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${bgClass}`}>
+    <div className="bg-[#f1f5f9] border border-white/80 rounded-[2rem] p-6 flex items-center gap-6 group hover:scale-[1.02] transition-transform duration-300"
+         style={{ boxShadow: "10px 10px 20px #cbd5e1, -10px -10px 20px #ffffff" }}>
+      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 bg-[#f1f5f9]`}
+           style={{ boxShadow: "inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff" }}>
         <div className={textClass}>{icon}</div>
       </div>
       <div>
-        <p className="text-gray-400 font-medium mb-1">{title}</p>
-        <h3 className="text-3xl font-black text-white">{value}</h3>
+        <p className="text-slate-500 font-bold text-sm mb-1">{title}</p>
+        <h3 className="text-3xl font-black text-slate-800 tracking-tight">{value}</h3>
       </div>
     </div>
   );
@@ -71,13 +71,14 @@ const AdminHome = () => {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="bg-gradient-to-r from-red-900/40 to-orange-900/40 border border-red-500/20 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-red-500/20 blur-[100px] rounded-full pointer-events-none" />
+      <div className="bg-[#f1f5f9] border border-white/80 rounded-[2.5rem] p-8 relative overflow-hidden mb-8"
+           style={{ boxShadow: "10px 10px 20px #cbd5e1, -10px -10px 20px #ffffff" }}>
+        <div className="absolute right-0 top-0 w-64 h-64 bg-red-400/10 blur-[80px] rounded-full pointer-events-none" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-black text-white mb-2">
+          <h1 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">
             Welcome, {admin?.name}! 🛡️
           </h1>
-          <p className="text-red-100 max-w-xl text-lg">
+          <p className="text-slate-500 font-medium max-w-xl text-lg">
             System overview and quick statistics for the Digital Evaluation System.
           </p>
         </div>

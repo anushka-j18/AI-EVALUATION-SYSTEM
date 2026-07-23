@@ -96,7 +96,7 @@ router.post("/teachers/bulk-upload", protectAdmin, upload.single("file"), async 
   const stream = Readable.from(req.file.buffer);
   
   stream
-    .pipe(csvParser({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
+    .pipe(csvParser({ mapHeaders: ({ header }) => header.replace(/^[\u200B-\u200D\uFEFF]+/g, "").replace(/['"]/g, "").trim().toLowerCase() }))
     .on("data", (data) => results.push(data))
     .on("end", async () => {
       let successCount = 0;

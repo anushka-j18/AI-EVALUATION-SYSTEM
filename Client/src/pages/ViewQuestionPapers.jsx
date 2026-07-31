@@ -3,7 +3,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import axios from "axios";
+import api, { SERVER_URL } from "../api/axiosConfig";
 import { Link } from "react-router-dom";
 
 import {
@@ -39,9 +39,9 @@ function ViewQuestionPapers() {
       try {
 
         const res =
-          await axios.get(
+          await api.get(
 
-            "http://localhost:5001/api/question-papers"
+            "/question-papers"
           );
 
         setPapers(
@@ -446,7 +446,7 @@ function ViewQuestionPapers() {
                     {/* VIEW */}
 
                     <a
-                      href={`http://localhost:5001/${paper.fileUrl}`}
+                      href={`${SERVER_URL}/${paper.fileUrl}`}
 
                       target="_blank"
 

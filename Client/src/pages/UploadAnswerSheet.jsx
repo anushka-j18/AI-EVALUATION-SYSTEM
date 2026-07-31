@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+
 import api from "../api/axiosConfig";
 import { UploadCloud, FileText, Loader2, Sparkles, Trash2 } from "lucide-react";
 
@@ -88,8 +88,8 @@ function UploadAnswerSheet() {
 
     try {
       const adminToken = localStorage.getItem("adminToken");
-      const res = await axios.post(
-        "http://localhost:5001/api/answer-sheets/upload-bulk",
+      const res = await api.post(
+        "/answer-sheets/upload-bulk",
         formData,
         {
           headers: {

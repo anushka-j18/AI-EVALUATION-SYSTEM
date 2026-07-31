@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axiosConfig";
 import { ClipboardList, Trash2, PlusCircle, Save, Loader2, Calculator } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,7 +16,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
       // Fetch from DB if no initial questions provided (standalone edit mode)
       const fetchQuestions = async () => {
         try {
-          const res = await axios.get(`http://localhost:5001/api/questions/paper/${paperId}`);
+          const res = await api.get(`/questions/paper/${paperId}`);
           setQuestions(res.data.questions || []);
         } catch (error) {
           console.error(error);
@@ -43,7 +43,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
     try {
       // If it has an ID, it means it was previously saved to DB
       if (questionId) {
-        await axios.delete(`http://localhost:5001/api/questions/${questionId}`);
+        await api.delete(`/questions/${questionId}`);
       }
       const updated = questions.filter((_, i) => i !== index);
       setQuestions(updated);
@@ -56,7 +56,7 @@ function DetectedQuestionsEditor({ paperId, initialQuestions, expectedTotalMarks
   const saveQuestions = async () => {
     try {
       setSaving(true);
-      await axios.put(`http://localhost:5001/api/questions/update-all/${paperId}`, {
+      await api.put(`/questions/update-all/${paperId}`, {
         questions,
       });
       alert("Questions Saved Successfully!");

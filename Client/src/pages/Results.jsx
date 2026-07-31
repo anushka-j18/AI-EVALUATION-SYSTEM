@@ -1,5 +1,5 @@
 import { useEffect,useState } from "react";
-import axios from "axios";
+import api from "../api/axiosConfig";
 import {Trophy,FileText,Sparkles,User,} from "lucide-react";
 
 function Results() {
@@ -13,8 +13,8 @@ const fetchResults =
       try {
 
         const res =
-          await axios.get(
-            "http://localhost:5001/api/evaluations"
+          await api.get(
+            "/evaluations"
           );
 
         setResults(res.data);

@@ -5,7 +5,7 @@ import {
   useState,
 } from "react";
 
-import axios from "axios";
+import api from "../api/axiosConfig";
 
 import {
   Brain,
@@ -54,9 +54,9 @@ const fetchQuestionPapers =
       try {
 
         const res =
-          await axios.get(
+          await api.get(
 
-            "http://localhost:5001/api/question-papers"
+            "/question-papers"
           );
 
         setPapers(
@@ -87,9 +87,9 @@ const fetchQuestionPapers =
       try {
 
         const res =
-          await axios.get(
+          await api.get(
 
-            `http://localhost:5001/api/questions/paper/${paperId}`
+            `/questions/paper/${paperId}`
           );
 
         setQuestions(
@@ -171,9 +171,9 @@ const fetchQuestionPapers =
         );
 
         const res =
-          await axios.post(
+          await api.post(
 
-            "http://localhost:5001/api/ai/auto-evaluate",
+            "/ai/auto-evaluate",
 
             formData
           );

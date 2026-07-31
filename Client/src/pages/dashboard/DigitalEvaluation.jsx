@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../api/axiosConfig";
+import api, { SERVER_URL } from "../../api/axiosConfig";
 import { Loader2, Save, Send, Brain, ZoomIn, ZoomOut, Check, X, MousePointer2, FileText, AlertCircle, PanelLeftClose, PanelLeftOpen, Undo2, Pencil } from "lucide-react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -288,9 +288,9 @@ const fetchData = async () => {
   }
 
   const isPdf = sheet.fileUrl.toLowerCase().endsWith(".pdf");
-  const fileUrl = `http://localhost:5001/${sheet.fileUrl.replace(/\\/g, "/")}`;
+  const fileUrl = `${SERVER_URL}/${sheet.fileUrl.replace(/\\/g, "/")}`;
   
-  const qpUrl = sheet.questionPaper?.fileUrl ? `http://localhost:5001/${sheet.questionPaper.fileUrl.replace(/\\/g, "/")}` : null;
+  const qpUrl = sheet.questionPaper?.fileUrl ? `${SERVER_URL}/${sheet.questionPaper.fileUrl.replace(/\\/g, "/")}` : null;
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-8 -mx-4 md:-mx-6 px-4 md:px-6">

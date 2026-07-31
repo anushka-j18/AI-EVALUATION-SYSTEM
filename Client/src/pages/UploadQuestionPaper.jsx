@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axiosConfig";
 
 import DetectedQuestionsEditor from "./DetectedQuestionsEditor";
 import {
@@ -128,9 +128,9 @@ function UploadQuestionPaper() {
         );
 
         const res =
-          await axios.post(
+          await api.post(
 
-            "http://localhost:5001/api/question-papers/upload",
+            "/question-papers/upload",
 
             formData,
 

@@ -49,11 +49,16 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/student/auth", studentAuthRoutes);
 app.use("/api/student/portal", studentPortalRoutes);
 
+// Health check endpoint for Render
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB then start server
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on ${PORT}`);
   });
 });

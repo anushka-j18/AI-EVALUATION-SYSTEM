@@ -32,7 +32,7 @@ To easily navigate and test the core functionalities of the platform, please use
 > [!TIP]
 > **Teacher Login** (Grading portal, answer sheet evaluation)
 > *   **Email**: `teacher@gmail.com`
-> *   **Password**: `teacher@1234`
+> *   **Password**: `teacher@123`
 
 ---
 

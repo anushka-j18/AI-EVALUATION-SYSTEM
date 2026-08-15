@@ -27,7 +27,7 @@ To easily navigate and test the core functionalities of the platform, please use
 > [!TIP]
 > **Admin Login** (Full system access, dashboard, and assignments)
 > *   **Email**: `admin@gmail.com`
-> *   **Password**: `admin@123`
+> *   **Password**: `admin123`
 
 > [!TIP]
 > **Teacher Login** (Grading portal, answer sheet evaluation)
